@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Relatório por Rubrica{% endblock %}
+{% block mobile_title %}Por Rubrica{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+  .print-hidden { display: none !important; }
+  [x-cloak] { display: block !important; }
+  [x-show] { display: block !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Cabeçalho -->
+  <div class="flex items-start justify-between gap-3 print-hidden">
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">Relatório por Rubrica</h1>
+      <p class="text-sm text-slate-400 mt-0.5">
+        {{ month_name }}/{{ current_year }}
+        {% if selected_entity %}&middot; {{ selected_entity.name }}{% endif %}
+      </p>
+    </div>
+    <button onclick="window.print()"
+      class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition flex-shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+      </svg>
+      Imprimir
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 print-hidden">
+    <form method="get" class="flex flex-wrap gap-3 items-end">
+      <div class="w-28">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Mês</label>
+        <select name="month"
+          class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white
+                 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+          <option value="1" {% if current_month == 1 %}selected{% endif %}>Janeiro</option>
+          <option value="2" {% if current_month == 2 %}selected{% endif %}>Fevereiro</option>
+          <option value="3" {% if current_month == 3 %}selected{% endif %}>Março</option>
+          <option value="4" {% if current_month == 4 %}selected{% endif %}>Abril</option>
+          <option value="5" {% if current_month == 5 %}selected{% endif %}>Maio</option>
+          <option value="6" {% if current_month == 6 %}selected{% endif %}>Junho</option>
+          <option value="7" {% if current_month == 7 %}selected{% endif %}>Julho</option>
+          <option value="8" {% if current_month == 8 %}selected{% endif %}>Agosto</option>
+          <option value="9" {% if current_month == 9 %}selected{% endif %}>Setembro</option>
+          <option value="10" {% if current_month == 10 %}selected{% endif %}>Outubro</option>
+          <option value="11" {% if current_month == 11 %}selected{% endif %}>Novembro</option>
+          <option value="12" {% if current_month == 12 %}selected{% endif %}>Dezembro</option>
+        </select>
+      </div>
+      <div class="w-24">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Ano</label>
+        <input type="number" name="year" value="{{ current_year }}" min="2020" max="2099"
+          class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-800
+                 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+      </div>
+      <div class="w-52">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Entidade</label>
+        <select name="entity"
+          class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white
+                 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+          <option value="">Todas</option>
+          {% for entity in entities %}
+          <option value="{{ entity.pk }}" {% if selected_entity.pk == entity.pk %}selected{% endif %}>
+            {{ entity.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit"
+          class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold rounded-lg transition">
+          Filtrar
+        </button>
+        <a href="{% url 'payroll:rubrica_report' %}"
+          class="px-4 py-2 bg-white border border-slate-200 text-slate-500 hover:text-slate-700 text-sm rounded-lg transition">
+          Limpar
+        </a>
+      </div>
+    </form>
+  </div>
+
+  {% if rubricas %}
+
+  <!-- Cards de resumo -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Colaboradores</p>
+      <p class="text-2xl font-bold text-slate-900">{{ total_pessoas }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Total créditos</p>
+      <p class="text-2xl font-bold text-emerald-600">R$ {{ total_creditos|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Total descontos</p>
+      <p class="text-2xl font-bold text-red-600">R$ {{ total_descontos|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Saldo líquido</p>
+      <p class="text-2xl font-bold {% if total_geral >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
+        R$ {{ total_geral|floatformat:2 }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Agrupamento por rubrica -->
+  <div class="space-y-3">
+    {% for rubrica in rubricas %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" x-data="{ open: true }">
+
+      <!-- Header da rubrica -->
+      <div class="px-5 py-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 transition"
+        @click="open = !open">
+        <div class="flex items-center gap-3">
+          {% if rubrica.total < 0 %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+            Desconto
+          </span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Crédito
+          </span>
+          {% endif %}
+          <h2 class="text-sm font-semibold text-slate-800">{{ rubrica.label }}</h2>
+          <span class="text-xs text-slate-400">{{ rubrica.items|length }} lançamento{{ rubrica.items|length|pluralize }}</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="font-bold {% if rubrica.total < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
+            R$ {{ rubrica.total|floatformat:2 }}
+          </span>
+          <svg class="w-4 h-4 text-slate-400 transition-transform" :class="open ? 'rotate-180' : ''"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Detalhes -->
+      <div x-show="open" x-cloak class="border-t border-slate-100">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-100 bg-slate-50/70">
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Colaborador</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide hidden sm:table-cell">Entidade</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide hidden md:table-cell">Descrição</th>
+              <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide">Valor</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            {% for adj in rubrica.items %}
+            <tr>
+              <td class="px-4 py-2.5 font-medium text-slate-900">{{ adj.person.name }}</td>
+              <td class="px-4 py-2.5 text-slate-500 text-sm hidden sm:table-cell">{{ adj.person.entity.name }}</td>
+              <td class="px-4 py-2.5 text-slate-400 text-xs truncate max-w-xs hidden md:table-cell">{{ adj.description }}</td>
+              <td class="px-4 py-2.5 text-right font-semibold {% if adj.value < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
+                R$ {{ adj.value|floatformat:2 }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="bg-slate-50 border-t border-slate-200">
+            <tr>
+              <td colspan="3" class="px-4 py-2.5 text-xs font-bold text-slate-600">Subtotal</td>
+              <td class="px-4 py-2.5 text-right font-bold {% if rubrica.total < 0 %}text-red-700{% else %}text-emerald-700{% endif %}">
+                R$ {{ rubrica.total|floatformat:2 }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+    <div class="py-16 text-center">
+      <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+        </svg>
+      </div>
+      <p class="text-sm font-semibold text-slate-700 mb-1">Nenhum lançamento para {{ month_name }}/{{ current_year }}</p>
+      <p class="text-xs text-slate-400">Selecione o mês e entidade nos filtros acima.</p>
+    </div>
+  </div>
+
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,151 @@
+# =============================================================================
+# SafraLog — infrastructure/docker-compose.yml
+# Base compartilhada entre dev e prod
+# =============================================================================
+name: safralog
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-safralog}
+      POSTGRES_USER: ${POSTGRES_USER:-safralog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-safralog_dev_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=pt_BR.UTF-8"
+      TZ: ${TIMEZONE:-America/Sao_Paulo}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # Porta não exposta ao host — acesso apenas interno via safralog_net
+    # Para acesso externo (TablePlus etc.), use o override de dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-safralog} -d ${POSTGRES_DB:-safralog}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - safralog_net
+
+  # ---------------------------------------------------------------------------
+  # Redis
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --save 60 1
+        --loglevel warning
+    volumes:
+      - redis_data:/data
+    # Porta não exposta ao host — acesso apenas interno via safralog_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safralog_net
+
+  # ---------------------------------------------------------------------------
+  # Django / Gunicorn
+  # ---------------------------------------------------------------------------
+  django:
+    build:
+      context: ..
+      dockerfile: docker/django/Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-development}
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.development}
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/static_collected
+      - app_logs:/app/logs
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - safralog_net
+
+  # ---------------------------------------------------------------------------
+  # Celery Worker
+  # ---------------------------------------------------------------------------
+  celery-worker:
+    build:
+      context: ..
+      dockerfile: docker/django/Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-development}
+    command: celery-worker
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.development}
+    volumes:
+      - media_data:/app/media
+      - app_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - safralog_net
+
+  # ---------------------------------------------------------------------------
+  # Celery Beat
+  # ---------------------------------------------------------------------------
+  celery-beat:
+    build:
+      context: ..
+      dockerfile: docker/django/Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-development}
+    command: celery-beat
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.development}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - safralog_net
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  media_data:
+    driver: local
+  static_data:
+    driver: local
+  app_logs:
+    driver: local
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  safralog_net:
+    driver: bridge

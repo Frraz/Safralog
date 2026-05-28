@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}Romaneio #{{ waybill.number|stringformat:"05d" }}{% endblock %}
+{% block nav_title %}Romaneio #{{ waybill.number|stringformat:"05d" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+
+  {# Header com ações #}
+  {# MELHORIA #3 — C5: x-data no container para @click Alpine no botão "Cancelar" #}
+  <div class="flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      {% waybill_status_badge waybill.status %}
+      {% if waybill.operation_date %}
+      <span class="text-sm text-gray-500 dark:text-gray-400">{{ waybill.operation_date|date:"d/m/Y" }}</span>
+      {% endif %}
+    </div>
+
+    <div class="flex items-center gap-2" x-data>
+      {% if can_confirm %}
+      <form method="post" action="{% url 'operations:waybill-confirm' pk=waybill.pk %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+          Confirmar
+        </button>
+      </form>
+      {% endif %}
+
+      {% if waybill.status == "draft" %}
+      <a href="{% url 'operations:waybill-update' pk=waybill.pk %}"
+         class="px-3 py-1.5 border border-gray-200 dark:border-gray-700
+                text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg
+                hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+        Editar
+      </a>
+      {% endif %}
+
+      {# MELHORIA #3 — C5 CORRIGIDO: onclick→@click Alpine; type="button" previne submit acidental #}
+      {% if can_cancel %}
+      <form method="post" action="{% url 'operations:waybill-cancel' pk=waybill.pk %}"
+            x-ref="formCancelar">
+        {% csrf_token %}
+        <button type="button"
+                @click="if (confirm('Cancelar este romaneio?')) $refs.formCancelar.submit()"
+                class="px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400
+                       hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+          Cancelar
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Dados principais #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+
+    {# Pesagem destacada #}
+    <div class="grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-800">
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Bruto</p>
+        <p class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+          {{ waybill.gross_weight|floatformat:0 }} <span class="text-sm font-normal">kg</span>
+        </p>
+      </div>
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Tara</p>
+        <p class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+          {{ waybill.tare_weight|floatformat:0 }} <span class="text-sm font-normal">kg</span>
+        </p>
+      </div>
+      <div class="px-4 py-4 text-center bg-green-50 dark:bg-green-900/10 rounded-tr-xl">
+        <p class="text-xs text-green-600 dark:text-green-400 uppercase tracking-wide font-semibold">Líquido</p>
+        <p class="mt-1 text-xl font-bold text-green-700 dark:text-green-400">
+          {{ waybill.net_weight_tons|floatformat:3 }} <span class="text-sm font-normal">t</span>
+        </p>
+        <p class="text-xs text-green-600 dark:text-green-500 font-semibold mt-0.5">
+          {{ waybill.total_value|currency_br }}
+        </p>
+      </div>
+    </div>
+
+    {# Detalhes #}
+    {# BUG #4 — C11 CORRIGIDO: guards em driver, vehicle, harvest antes de acessar atributos de FK #}
+    <div class="grid grid-cols-2 gap-0 divide-y divide-gray-100 dark:divide-gray-800">
+
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Motorista</span>
+        {% if waybill.driver %}
+        <a href="{% url 'logistics:driver-detail' pk=waybill.driver.pk %}"
+           class="text-sm font-medium text-gray-900 dark:text-white hover:text-green-600 transition-colors">
+          {{ waybill.driver.name }}
+        </a>
+        {% else %}
+        <span class="text-sm text-gray-400">—</span>
+        {% endif %}
+      </div>
+
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Veículo</span>
+        <span class="text-sm text-gray-900 dark:text-white font-mono">
+          {{ waybill.vehicle.plate|default:"—" }}
+        </span>
+      </div>
+
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Safra</span>
+        <span class="text-sm text-gray-900 dark:text-white">
+          {{ waybill.harvest.name|default:"—" }}
+        </span>
+      </div>
+
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Talhão</span>
+        <span class="text-sm text-gray-900 dark:text-white">
+          {{ waybill.field.name|default:"—" }}
+        </span>
+      </div>
+
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Cultura</span>
+        <span class="text-sm text-gray-900 dark:text-white">{{ waybill.get_culture_display }}</span>
+      </div>
+
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Preço/t</span>
+        <span class="text-sm text-gray-900 dark:text-white">{{ waybill.unit_price|currency_br }}</span>
+      </div>
+
+      {% if waybill.destination %}
+      <div class="col-span-2 px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Destino</span>
+        <span class="text-sm text-gray-900 dark:text-white">{{ waybill.destination }}</span>
+      </div>
+      {% endif %}
+
+      {% if waybill.scale_ticket %}
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Ticket</span>
+        <span class="text-sm font-mono text-gray-900 dark:text-white">{{ waybill.scale_ticket }}</span>
+      </div>
+      {% endif %}
+
+      {% if waybill.notes %}
+      <div class="col-span-2 px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Notas</span>
+        <span class="text-sm text-gray-700 dark:text-gray-300">{{ waybill.notes }}</span>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  {# Anexos #}
+  {% include "attachments/_list.html" with object=waybill attachments=attachments %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+# =============================================================================
+# SafraLog — infrastructure/docker-compose.prod.yml
+# Override para produção no VPS Hostinger
+#
+# IMPORTANTE: O Nginx do HOST (não containerizado) gerencia as portas 80/443.
+# Nenhum container pode expor 80 ou 443 — isso quebraria todos os outros sistemas.
+# O Django/Gunicorn fica na porta interna 127.0.0.1:8120.
+#
+# Nginx do host aponta:
+#   safralog.ferzion.com.br → 127.0.0.1:8120
+#
+# Ver: docker/nginx/safralog.ferzion.com.br.conf
+# =============================================================================
+services:
+  django:
+    command: gunicorn
+    restart: always
+    env_file: ../.env.production
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DJANGO_DEBUG: "False"
+    ports:
+      - "127.0.0.1:8120:8000"
+    volumes:
+      - /var/www/docker-instances/SafraLog/media:/app/media
+      - /var/www/docker-instances/SafraLog/static_collected:/app/static_collected
+      - app_logs:/app/logs
+
+  celery-worker:
+    restart: always
+    env_file: ../.env.production
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    volumes:
+      - /var/www/docker-instances/SafraLog/media:/app/media
+      - app_logs:/app/logs
+
+  celery-beat:
+    restart: always
+    env_file: ../.env.production
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+
+  postgres:
+    restart: always
+    env_file: ../.env.production

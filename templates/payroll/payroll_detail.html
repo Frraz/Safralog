@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Folha — {{ payroll.person.name }}{% endblock %}
+{% block mobile_title %}{{ payroll.person.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- ── Breadcrumb ── -->
+  <nav class="flex items-center gap-1.5 text-xs text-slate-400">
+    <a href="{% url 'payroll:dashboard' %}" class="hover:text-slate-600 transition">Folha de Pagamento</a>
+    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+    <span class="text-slate-600 font-medium">{{ payroll.competencia_label }}</span>
+    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+    <span class="text-slate-800 font-semibold">{{ payroll.person.name }}</span>
+  </nav>
+
+  <!-- ── Cabeçalho ── -->
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-400 flex items-center justify-center flex-shrink-0 shadow">
+        <span class="text-sm font-bold text-white">{{ payroll.person.name|first|upper }}</span>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-slate-900">{{ payroll.person.name }}</h1>
+        <p class="text-sm text-slate-500">{{ payroll.person.job_role }} · {{ payroll.competencia_label }}</p>
+      </div>
+      <!-- Status badge -->
+      {% if payroll.status == 'FECHADA' %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+          </svg>
+          Fechada
+        </span>
+      {% elif payroll.status == 'PROCESSADA' %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          Processada
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+          Aberta
+        </span>
+      {% endif %}
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      {% if not payroll.is_fechada %}
+      <a href="{% url 'payroll:entry_form' %}?payroll={{ payroll.id }}"
+        class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Lançamento Manual
+      </a>
+      <button
+        hx-post="{% url 'payroll:process_single' payroll.id %}"
+        hx-target="#entries-section"
+        hx-swap="outerHTML"
+        hx-indicator="#recalc-spinner"
+        class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition shadow-sm">
+        <svg id="recalc-spinner" class="w-4 h-4 htmx-indicator animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        <svg class="w-4 h-4 htmx-settling:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Recalcular
+      </button>
+      <a href="{% url 'payroll:payroll_close_confirm' payroll.id %}"
+        class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition shadow-sm shadow-emerald-500/20">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        Fechar Folha
+      </a>
+      {% else %}
+      <a href="{% url 'payroll:payslip' payroll.id %}"
+        class="inline-flex items-center gap-2 px-3 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg text-sm font-semibold transition shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+        </svg>
+        Ver Holerite
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Cards totalizadores ── -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Proventos</p>
+      <p class="text-xl font-bold text-emerald-600 mt-1">R$ {{ payroll.total_proventos|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Descontos</p>
+      <p class="text-xl font-bold text-red-500 mt-1">R$ {{ payroll.total_descontos|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Líquido</p>
+      <p class="text-xl font-bold text-sky-600 mt-1">R$ {{ payroll.total_liquido|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">FGTS (encargo)</p>
+      <p class="text-xl font-bold text-slate-600 mt-1">R$ {{ payroll.total_encargos|floatformat:2 }}</p>
+    </div>
+  </div>
+
+  <!-- ── Bases de incidência ── -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+    <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Bases de Incidência</h3>
+    <div class="grid grid-cols-3 gap-4">
+      <div>
+        <p class="text-xs text-slate-400">Base INSS</p>
+        <p class="text-sm font-semibold text-slate-800">R$ {{ payroll.base_inss|floatformat:2 }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-slate-400">Base IRRF</p>
+        <p class="text-sm font-semibold text-slate-800">R$ {{ payroll.base_irrf|floatformat:2 }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-slate-400">Base FGTS</p>
+        <p class="text-sm font-semibold text-slate-800">R$ {{ payroll.base_fgts|floatformat:2 }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Lançamentos ── -->
+  <div id="entries-section" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-slate-700">Lançamentos</h2>
+      <div class="flex items-center gap-3 text-xs text-slate-400">
+        <span class="inline-flex items-center gap-1">
+          <span class="w-2 h-2 rounded-sm bg-emerald-400"></span> Provento
+        </span>
+        <span class="inline-flex items-center gap-1">
+          <span class="w-2 h-2 rounded-sm bg-red-400"></span> Desconto
+        </span>
+        <span class="inline-flex items-center gap-1">
+          <span class="w-2 h-2 rounded-sm bg-slate-300"></span> Encargo
+        </span>
+      </div>
+    </div>
+
+    {% if entries %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-100">
+            <th class="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide w-16">Cód.</th>
+            <th class="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Descrição</th>
+            <th class="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Referência</th>
+            <th class="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Valor</th>
+            <th class="text-center px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Origem</th>
+            {% if not payroll.is_fechada %}
+            <th class="px-4 py-2.5 w-10"></th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          {% for entry in entries %}
+          <tr class="hover:bg-slate-50/50 transition-colors group">
+            <td class="px-4 py-3">
+              <span class="text-xs font-mono text-slate-400">{{ entry.rubrica.codigo }}</span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2">
+                {% if entry.rubrica.natureza == 'PROVENTO' %}
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                {% elif entry.rubrica.natureza == 'DESCONTO' %}
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></span>
+                {% else %}
+                  <span class="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0"></span>
+                {% endif %}
+                <span class="font-medium text-slate-800">{{ entry.rubrica.nome }}</span>
+                {% if entry.descricao %}
+                  <span class="text-xs text-slate-400 hidden md:inline">— {{ entry.descricao }}</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="px-4 py-3 text-right text-xs text-slate-400 hidden md:table-cell">
+              {% if entry.quantidade %}{{ entry.quantidade }}{% endif %}
+            </td>
+            <td class="px-4 py-3 text-right font-semibold
+              {% if entry.rubrica.natureza == 'PROVENTO' %}text-emerald-700
+              {% elif entry.rubrica.natureza == 'DESCONTO' %}text-red-600
+              {% else %}text-slate-500{% endif %}">
+              {% if entry.rubrica.natureza == 'DESCONTO' %}-{% endif %}R$ {{ entry.valor|floatformat:2 }}
+            </td>
+            <td class="px-4 py-3 text-center hidden sm:table-cell">
+              {% if entry.origem == 'ENGINE' %}
+                <span class="text-xs text-slate-400">automático</span>
+              {% elif entry.origem == 'MANUAL' %}
+                <span class="inline-flex items-center gap-1 text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                  <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                  manual
+                </span>
+              {% else %}
+                <span class="text-xs text-slate-400">{{ entry.origem|lower }}</span>
+              {% endif %}
+            </td>
+            {% if not payroll.is_fechada %}
+            <td class="px-4 py-3">
+              {% if entry.origem == 'MANUAL' %}
+              <button
+                hx-delete="{% url 'payroll:cancel_entry' entry.id %}"
+                hx-target="closest tr"
+                hx-swap="outerHTML swap:0.3s"
+                hx-confirm="Cancelar este lançamento?"
+                class="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition opacity-0 group-hover:opacity-100">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+        <!-- Totais por natureza -->
+        <tfoot class="bg-slate-50 border-t-2 border-slate-200">
+          <tr>
+            <td colspan="{% if payroll.is_fechada %}3{% else %}4{% endif %}" class="px-4 py-2.5 text-xs font-semibold text-slate-500 text-right">Total Proventos</td>
+            <td class="px-4 py-2.5 text-right font-bold text-emerald-700">R$ {{ payroll.total_proventos|floatformat:2 }}</td>
+            <td colspan="2"></td>
+          </tr>
+          <tr>
+            <td colspan="{% if payroll.is_fechada %}3{% else %}4{% endif %}" class="px-4 py-2 text-xs font-semibold text-slate-500 text-right">Total Descontos</td>
+            <td class="px-4 py-2 text-right font-bold text-red-600">- R$ {{ payroll.total_descontos|floatformat:2 }}</td>
+            <td colspan="2"></td>
+          </tr>
+          <tr class="border-t border-slate-200">
+            <td colspan="{% if payroll.is_fechada %}3{% else %}4{% endif %}" class="px-4 py-3 text-sm font-bold text-slate-700 text-right">TOTAL LÍQUIDO</td>
+            <td class="px-4 py-3 text-right text-base font-bold text-sky-700">R$ {{ payroll.total_liquido|floatformat:2 }}</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    {% else %}
+    <div class="py-12 text-center">
+      <p class="text-sm text-slate-500">Nenhum lançamento. Clique em "Recalcular" para gerar a folha.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Aviso de folha fechada ── -->
+  {% if payroll.is_fechada and payroll.closure %}
+  <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3">
+    <svg class="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+    </svg>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold text-emerald-800">Folha fechada</p>
+      <p class="text-xs text-emerald-600 mt-0.5">
+        Fechada em {{ payroll.fechado_em|date:"d/m/Y H:i" }} por {{ payroll.fechado_por.get_full_name }}.
+        Hash de integridade: <span class="font-mono">{{ payroll.closure.hash_integridade|slice:":16" }}...</span>
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

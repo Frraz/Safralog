@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Romaneio #{{ waybill.number }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; font-size: 10pt; color: #111827; line-height: 1.5; }
+
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #16a34a; }
+    .header-brand h1 { font-size: 18pt; font-weight: 700; color: #16a34a; letter-spacing: -0.5px; }
+    .header-brand p { font-size: 9pt; color: #6b7280; margin-top: 2px; }
+    .header-doc { text-align: right; }
+    .header-doc .doc-number { font-size: 14pt; font-weight: 700; color: #111827; }
+    .header-doc .doc-status { display: inline-block; margin-top: 4px; padding: 2px 10px; border-radius: 999px; font-size: 8pt; font-weight: 600; background: #dcfce7; color: #15803d; }
+
+    .section { margin-bottom: 20px; }
+    .section-title { font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7280; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #e5e7eb; }
+
+    .data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .data-item dt { font-size: 8pt; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-item dd { font-size: 10pt; font-weight: 600; color: #111827; margin-top: 1px; }
+
+    .weights-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .weights-table th { text-align: left; font-size: 8pt; font-weight: 600; text-transform: uppercase; color: #6b7280; padding: 6px 8px; background: #f9fafb; border: 1px solid #e5e7eb; }
+    .weights-table td { padding: 8px; border: 1px solid #e5e7eb; font-size: 10pt; }
+    .weights-table tr.highlight td { background: #f0fdf4; font-weight: 700; color: #15803d; }
+    .weights-table td.right { text-align: right; }
+
+    .total-box { background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 8px; padding: 16px; text-align: center; margin-top: 16px; }
+    .total-box .label { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.8px; color: #15803d; font-weight: 600; }
+    .total-box .value { font-size: 22pt; font-weight: 800; color: #15803d; margin-top: 2px; }
+    .total-box .sub { font-size: 9pt; color: #16a34a; margin-top: 2px; }
+
+    .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
+    .sig-line { border-top: 1px solid #374151; padding-top: 6px; }
+    .sig-line p { font-size: 9pt; color: #374151; }
+
+    .footer { margin-top: 32px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 8pt; color: #9ca3af; text-align: center; }
+
+    .attachments-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+    .attachment-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 4px; border: 1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-brand">
+      <h1>{{ tenant.name|upper }}</h1>
+      <p>Sistema de Gestão Agrícola</p>
+    </div>
+    <div class="header-doc">
+      <div class="doc-number">ROMANEIO #{{ waybill.number|stringformat:"05d" }}</div>
+      <div class="doc-status">
+        {% if waybill.status == 'confirmed' %}Confirmado
+        {% elif waybill.status == 'settled' %}Liquidado
+        {% elif waybill.status == 'cancelled' %}Cancelado
+        {% else %}Rascunho{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Dados operacionais</div>
+    <div class="data-grid">
+      <div class="data-item">
+        <dt>Data</dt>
+        <dd>{{ waybill.operation_date|date:"d/m/Y" }}{% if waybill.operation_time %} · {{ waybill.operation_time|time:"H:i" }}{% endif %}</dd>
+      </div>
+      <div class="data-item">
+        <dt>Safra</dt>
+        <dd>{{ waybill.harvest.name }}</dd>
+      </div>
+      <div class="data-item">
+        <dt>Cultura</dt>
+        <dd>{{ waybill.get_culture_display }}</dd>
+      </div>
+      <div class="data-item">
+        <dt>Motorista</dt>
+        <dd>{{ waybill.driver.name }}</dd>
+      </div>
+      {% if waybill.vehicle %}
+      <div class="data-item">
+        <dt>Veículo</dt>
+        <dd>{{ waybill.vehicle.plate }}</dd>
+      </div>
+      {% endif %}
+      {% if waybill.field %}
+      <div class="data-item">
+        <dt>Talhão</dt>
+        <dd>{{ waybill.field.name }}</dd>
+      </div>
+      {% endif %}
+      {% if waybill.destination %}
+      <div class="data-item">
+        <dt>Destino</dt>
+        <dd>{{ waybill.destination }}</dd>
+      </div>
+      {% endif %}
+      {% if waybill.scale_ticket %}
+      <div class="data-item">
+        <dt>Ticket balança</dt>
+        <dd>{{ waybill.scale_ticket }}</dd>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Pesagem</div>
+    <table class="weights-table">
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th class="right">Peso (kg)</th>
+          <th class="right">Toneladas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Peso Bruto</td>
+          <td class="right">{{ waybill.gross_weight|floatformat:0 }} kg</td>
+          {# FIX: era divisibleby:1000 (retorna bool) — usar propriedade do model #}
+          <td class="right">—</td>
+        </tr>
+        <tr>
+          <td>Tara</td>
+          <td class="right">{{ waybill.tare_weight|floatformat:0 }} kg</td>
+          <td class="right">—</td>
+        </tr>
+        <tr class="highlight">
+          <td><strong>Peso Líquido</strong></td>
+          <td class="right"><strong>{{ waybill.net_weight|floatformat:0 }} kg</strong></td>
+          <td class="right"><strong>{{ waybill.net_weight_tons|floatformat:3 }} t</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="total-box">
+    <div class="label">Valor Total</div>
+    <div class="value">R$ {{ waybill.total_value|floatformat:2 }}</div>
+    <div class="sub">
+      {{ waybill.net_weight_tons|floatformat:3 }} ton &times; R$ {{ waybill.unit_price|floatformat:4 }}/ton
+    </div>
+  </div>
+
+  {% if waybill.notes %}
+  <div class="section" style="margin-top: 20px;">
+    <div class="section-title">Observações</div>
+    <p style="font-size: 9pt; color: #374151; white-space: pre-wrap;">{{ waybill.notes }}</p>
+  </div>
+  {% endif %}
+
+  {% if attachments %}
+  <div class="section" style="margin-top: 20px;">
+    <div class="section-title">Fotos / Anexos</div>
+    <div class="attachments-grid">
+      {% for att in attachments %}
+        {# FIX: WeasyPrint precisa de file:// + caminho absoluto para carregar imagens #}
+        <img src="file://{{ att.file.path }}" class="attachment-img" alt="{{ att.original_filename }}" />
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="signatures">
+    <div>
+      <div class="sig-line">
+        <p><strong>{{ waybill.driver.name }}</strong></p>
+        <p>Motorista</p>
+      </div>
+    </div>
+    <div>
+      <div class="sig-line">
+        <p><strong>Responsável / Conferente</strong></p>
+        <p>{{ tenant.name }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Gerado em {{ waybill.updated_at|date:"d/m/Y \à\s H:i" }} &middot; SafraLog &middot; {{ tenant.name }}
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,357 @@
+# SafraLog — Registro de Alterações
+# Sessão: 2026-05-14
+# Contexto para continuação em nova conversa
+
+================================================================================
+VISÃO GERAL DO PROJETO
+================================================================================
+
+ERP agrícola/logístico Django multi-tenant chamado SafraLog.
+Stack: Django 5.1, PostgreSQL, Redis, Celery, Docker Compose, HTMX, Alpine.js, Tailwind.
+Apps: operations, logistics, finance, dashboard, accounts, tenants, core,
+      notifications, attachments, reports.
+
+Ambiente Docker:
+  docker compose -f infrastructure/docker-compose.yml \
+                 -f infrastructure/docker-compose.dev.yml \
+                 <comando>
+
+Build frontend:
+  npm run build && make static && make check
+
+================================================================================
+DADOS DE DEMONSTRAÇÃO (banco atual)
+================================================================================
+
+Tenant ativo: "Fazenda Santa Fé Demo" (slug: fazenda-demo, plan: professional)
+Safra ativa:  "Safra Soja 2024/25" (soybean, active)
+Safra concluída: "Safra 25/26" (soybean, completed)
+
+Motoristas (7): Antônio Carlos Ferreira, Carlos Eduardo Silva, João Pedro Oliveira,
+                Luiz Henrique Santos, Marcos Antônio Pereira, Roberto Alves Costa,
+                Walace Adeodalto
+Veículos (5): ABC-1234 Scania R540, DEF-5678 Volvo FH500, GHI-9012 Mercedes Atego,
+              JKL-3456 DAF XF480, MCH-2189
+Talhões (5): Talhão Leste (810ha), Norte A (500ha), Norte B (420ha),
+             Sul 1 (680ha), Sul 2 (590ha)
+Romaneios: 61 (draft, confirmed, settled, cancelled)
+Adiantamentos: 1 | Abastecimentos: 1 | LedgerEntries: 2 | Settlements: 1
+
+ATENÇÃO: O seed script criou waybills com status=CONFIRMED diretamente no banco,
+bypassando WaybillConfirmView. Por isso, LedgerEntry de crédito (waybill_production)
+NÃO existe para esses romaneios. O faturamento_bruto no dashboard é calculado
+diretamente dos Waybills (gross_weight - tare_weight) * unit_price / 1000,
+não do LedgerEntry — por design intencional para tolerar esse cenário.
+
+================================================================================
+ALTERAÇÃO 1 — apps/dashboard/selectors.py (REESCRITA COMPLETA)
+================================================================================
+
+PROBLEMA: Dashboard completamente vazio — KPIs, gráficos e listas sem dados.
+
+CAUSAS IDENTIFICADAS:
+  1. Mismatch de chaves: selector retornava recent_waybills, driver_ranking,
+     activity_feed, alerts, daily_chart_data — mas o template esperava
+     romaneios_recentes, ranking_motoristas, atividade_recente, insights,
+     chart_tonelagem_json. Todas as variáveis chegavam None ao template.
+  2. Mismatch de tipos: template acessa rom.motorista.iniciais, rom.talhao.nome,
+     rom.veiculo.placa (nomes em português). Models Django usam driver, field,
+     vehicle (inglês). Selector passava objetos ORM diretamente — falha silenciosa.
+  3. Mismatch de status: template compara rom.status == 'confirmado'/'rascunho'/
+     'fechado' mas model usa confirmed/draft/settled.
+  4. faturamento_bruto calculado do LedgerEntry (que estava vazio no seed).
+
+SOLUÇÃO:
+  - Reescrita completa do selectors.py (~480 linhas)
+  - get_dashboard_stats(tenant) retorna dict com exatamente as chaves do template
+  - Objetos SimpleNamespace como proxy com atributos em português
+  - _status_pt() faz mapeamento confirmed→confirmado, draft→rascunho, settled→fechado
+  - faturamento_bruto calculado via ExpressionWrapper nos Waybills diretamente
+  - total_debitos vem do LedgerEntry (correto — fuel e advance têm entries)
+  - _ZERO = Decimal("0") como constante para todos os Coalesce
+
+CHAVES DO CONTEXTO (template index.html espera exatamente estas):
+  safra_ativa          → SimpleNamespace(pk, nome, percentual_completo, data_inicio)
+  motoristas_negativos → lista de drivers com saldo negativo
+  stats                → dict com ~30 KPIs (hoje_tonelagem, faturamento_bruto, etc.)
+  chart_tonelagem_json → JSON string [{data:"14/05", tonelagem:842.0}, ...]
+  romaneios_recentes   → lista SimpleNamespace com atributos em PT
+  ranking_motoristas   → lista SimpleNamespace (motorista.nome_curto, total_tonelagem)
+  top_veiculos         → lista SimpleNamespace (veiculo.placa, total_tonelagem)
+  saldos_motoristas    → lista SimpleNamespace (motorista.pk, saldo)
+  atividade_recente    → lista SimpleNamespace (tipo, descricao, quando, usuario)
+  insights             → SimpleNamespace (motoristas_inativos, pico_dia, custo_alto)
+
+================================================================================
+ALTERAÇÃO 2 — apps/dashboard/views.py (ATUALIZAÇÃO)
+================================================================================
+
+PROBLEMA: View fazia queries adicionais além do get_dashboard_stats, causando
+          inconsistências. Import duplicado de timezone dentro de método.
+
+SOLUÇÃO:
+  - DashboardView.get() delega 100% ao get_dashboard_stats(request.tenant)
+  - QuickSearchView para HTMX do command palette
+  - Imports limpos no topo do arquivo
+
+================================================================================
+ALTERAÇÃO 3 — apps/operations/views/harvest.py (CORREÇÃO + MELHORIA)
+================================================================================
+
+PROBLEMA: IntegrityError 500 ao editar safra para status 'active'.
+  django.db.utils.IntegrityError: duplicate key value violates unique constraint
+  "unique_active_harvest_per_tenant"
+
+CAUSA: HarvestUpdateView fazia form.save() diretamente sem desativar a safra ativa anterior.
+
+SOLUÇÃO: Adicionado helper _ensure_single_active() + transaction.atomic():
+
+  def _ensure_single_active(tenant, new_status, exclude_pk=None) -> int:
+      if new_status != "active":
+          return 0
+      qs = Harvest.objects.filter(tenant=tenant, status="active")
+      if exclude_pk:
+          qs = qs.exclude(pk=exclude_pk)
+      count = qs.count()
+      if count:
+          qs.update(status="completed")
+      return count
+
+  Chamado em HarvestCreateView.post() e HarvestUpdateView.post() dentro de
+  transaction.atomic(). exclude_pk=pk no update é crítico — sem ele a própria
+  safra seria concluída antes de ser salva como active.
+
+  Se uma safra anterior foi concluída automaticamente, messages.info() notifica o usuário.
+
+================================================================================
+ALTERAÇÃO 4 — apps/operations/models/harvest.py (MELHORIA)
+================================================================================
+
+MUDANÇAS:
+  + Métodos de transição de status (recomendado usar em vez de .status = X):
+      harvest.activate()  → conclui automaticamente outra ativa + ativa esta
+                            usa select_for_update() para evitar race condition
+      harvest.complete()  → status = completed, save(update_fields=...)
+      harvest.cancel()    → status = cancelled, save(update_fields=...)
+
+  + Propriedades de status simétricas:
+      is_active, is_planning, is_completed, is_cancelled
+
+  + target_production → Decimal (era expected_total_tons → float, mantido como alias)
+    Decimal preserva precisão em cálculos financeiros vs float
+
+  + duration_days → int | None (dias entre start_date e end_date)
+
+  + __str__ agora inclui status: "Safra X (Soja) — Ativa"
+
+  Field model:
+  + has_gps → bool (latitude e longitude definidos)
+  + verbose_name adicionado em latitude/longitude
+
+CONSTRAINT MANTIDA: unique_active_harvest_per_tenant (garante 1 safra ativa/tenant)
+
+================================================================================
+ALTERAÇÃO 5 — apps/operations/models/waybill.py (MELHORIA)
+================================================================================
+
+MUDANÇAS:
+  + get_absolute_url() → corrige AttributeError nas views após save
+      return reverse("operations:waybill-detail", kwargs={"pk": self.pk})
+      Permite: redirect(waybill.get_absolute_url()), {{ waybill.get_absolute_url }}
+               e botão "Ver no site" no Django Admin automático
+
+  + Propriedades de status simétricas:
+      is_draft, is_confirmed, is_settled, is_cancelled, is_editable
+
+  + Regras de negócio explícitas no model:
+      can_confirm → True apenas se status == DRAFT
+      can_cancel  → True se DRAFT ou CONFIRMED (SETTLED não pode cancelar)
+
+  + Métodos de transição:
+      confirm(user=None) → valida can_confirm, levanta ValueError se inválido,
+                           status=CONFIRMED, save(update_fields=["status","updated_at"])
+      cancel(user=None)  → valida can_cancel, idem
+
+  + __str__ removeu {self.driver} (causava N+1 query em listas/admin)
+    Antes: "Romaneio #00063 | Walace Adeodalto | 2026-05-14"
+    Depois: "Romaneio #00063 | 2026-05-14"
+
+MANTIDOS: net_weight, net_weight_tons, total_value, todas as constraints e índices
+
+================================================================================
+ALTERAÇÃO 6 — apps/logistics/views/driver.py (CORREÇÃO)
+================================================================================
+
+PROBLEMA: FieldError 500 em /logistics/motoristas/<pk>/
+  "Expression contains mixed types: DecimalField, IntegerField. You must set output_field."
+
+CAUSA: Coalesce(Sum("gross_weight"), 0) — Sum retorna DecimalField, literal 0 é
+       IntegerField. Django não resolve o tipo misto.
+
+CORREÇÃO em DriverDetailView.get():
+  _ZERO = Decimal("0")  # constante no topo do módulo
+
+  # Antes
+  month_gross=Coalesce(Sum("gross_weight"), 0),
+
+  # Depois
+  month_gross=Coalesce(Sum("gross_weight"), _ZERO, output_field=DecimalField()),
+  month_tare=Coalesce(Sum("tare_weight"),  _ZERO, output_field=DecimalField()),
+
+  # Divisão preservando precisão decimal
+  stats["month_net_tons"] = (stats["month_gross"] - stats["month_tare"]) / Decimal("1000")
+
+  # Mesma correção em fuel_stats
+  month_fuel_liters=Coalesce(Sum("liters"), _ZERO, output_field=DecimalField()),
+
+LIMPEZA: removido import duplicado de timezone dentro do método get()
+
+================================================================================
+ALTERAÇÃO 7 — apps/logistics/views/vehicle.py (CORREÇÃO)
+================================================================================
+
+PROBLEMA: Mesmo FieldError em /logistics/veiculos/<pk>/
+
+CORREÇÃO em VehicleDetailView.get(): idêntica à do driver.
+  _ZERO = Decimal("0")
+  month_gross=Coalesce(Sum("gross_weight"), _ZERO, output_field=DecimalField()),
+  month_tare=Coalesce(Sum("tare_weight"),  _ZERO, output_field=DecimalField()),
+  stats["month_net_tons"] = (stats["gross"] - stats["tare"]) / Decimal("1000")
+
+MELHORIA: month_net_tons não existia no dict antes (só gross e tare em kg brutos).
+          Agora está disponível para o template.
+
+LIMPEZA: imports de timezone e Waybill movidos para o topo do arquivo (estavam inline
+         dentro do método get())
+
+================================================================================
+ALTERAÇÃO 8 — apps/operations/views/waybill.py (CORREÇÃO + MELHORIA)
+================================================================================
+
+PROBLEMAS:
+  1. AttributeError: 'Waybill' object has no attribute 'get_absolute_url'
+     (corrigido pela Alteração 5 — get_absolute_url() adicionado ao model)
+
+  2. ImportError: cannot import name 'LedgerService' from ledger_service
+     WaybillConfirmView tentava: from ledger_service import LedgerService
+     O módulo exporta FUNÇÕES, não uma classe.
+
+  3. Aggregate Sum("gross") - Sum("tare") sem Coalesce em WaybillListView
+     retorna None - None quando não há romaneios filtrados.
+
+CORREÇÕES:
+
+  WaybillConfirmView:
+    # Antes — ImportError
+    from apps.finance.services.ledger_service import LedgerService
+    LedgerService.record_waybill_production(tenant=..., account=..., waybill=...,
+        amount=waybill.total_value, quantity_kg=..., unit_price=..., competence_date=...)
+
+    # Depois — correto
+    from apps.finance.services.ledger_service import record_waybill_production
+    waybill.confirm(user=request.user)  # usa método do model
+    entry = record_waybill_production(tenant=..., account=account, waybill=waybill,
+                                      user=request.user)
+    if entry:
+        Waybill.objects.filter(pk=waybill.pk).update(ledger_entry=entry)
+
+    select_related("driver__financial_account") adicionado ao get_object_or_404
+
+  WaybillDetailView:
+    # Usa propriedades do model em vez de comparar strings
+    can_confirm = waybill.can_confirm and role in ("admin", "manager", "operator")
+    can_cancel  = waybill.can_cancel  and role in ("admin", "manager")
+
+  WaybillUpdateView:
+    if not waybill.is_editable:  # era: if waybill.status != "draft"
+
+  WaybillListView aggregate:
+    # Substitui Sum("gross") - Sum("tare") por dois Coalesce com Decimal("0")
+    # e ExpressionWrapper para total_value real (era Sum("unit_price") — incorreto)
+
+================================================================================
+ALTERAÇÃO 9 — apps/notifications/signals.py (CORREÇÃO)
+================================================================================
+
+PROBLEMAS:
+  1. TypeError: Notification() got unexpected keyword arguments: 'notification_type'
+     O campo do model é `level`, não `notification_type`.
+  2. Campo `title` (CharField obrigatório) estava ausente em todos os create().
+  3. Verificação de status original no signal waybill_confirmed era ineficaz
+     (consultava banco pós-save, já com status atualizado).
+
+CORREÇÕES:
+
+  _create_notification():
+    # Antes
+    Notification.objects.create(user=user, message=msg, notification_type=level)
+
+    # Depois — usa Notification.notify() que cuida de title+level+tenant
+    Notification.notify(user=user, title=title, message=message, level=level)
+
+  _notify_admins(): adicionado parâmetro `title` obrigatório, repassado para
+  _create_notification().
+
+  Todos os callers atualizados com title="" explícito.
+
+  waybill_confirmed e settlement_status_changed:
+    Adicionado guard update_fields para evitar notificação duplicada quando
+    o save não altera status (ex: ao vincular ledger_entry após confirmar):
+      if update_fields is not None and "status" not in update_fields:
+          return
+
+================================================================================
+PADRÃO RECORRENTE — Coalesce com tipos mistos
+================================================================================
+
+PROBLEMA SISTÊMICO: Qualquer Coalesce(Sum("campo_decimal"), 0) onde 0 é Python int
+falha com FieldError "Expression contains mixed types: DecimalField, IntegerField."
+
+REGRA A SEGUIR em todo o projeto:
+  from decimal import Decimal
+  from django.db.models import DecimalField
+  _ZERO = Decimal("0")
+
+  # ERRADO
+  Coalesce(Sum("gross_weight"), 0)
+
+  # CORRETO
+  Coalesce(Sum("gross_weight"), _ZERO, output_field=DecimalField())
+
+  # Divisão preservando precisão
+  net_tons = (gross - tare) / Decimal("1000")  # não / 1000
+
+================================================================================
+ARQUIVOS MODIFICADOS (resumo)
+================================================================================
+
+apps/dashboard/selectors.py         — REESCRITA COMPLETA
+apps/dashboard/views.py             — atualização
+apps/operations/views/harvest.py    — correção IntegrityError + melhorias
+apps/operations/models/harvest.py   — melhorias (activate/complete/cancel)
+apps/operations/models/waybill.py   — get_absolute_url + confirm/cancel + properties
+apps/operations/views/waybill.py    — correção ImportError + LedgerService + aggregate
+apps/logistics/views/driver.py      — correção FieldError Decimal/Integer
+apps/logistics/views/vehicle.py     — correção FieldError Decimal/Integer
+apps/notifications/signals.py       — correção notification_type → level + title
+
+================================================================================
+ESTADO ATUAL DO SISTEMA (após todas as correções)
+================================================================================
+
+✓ Dashboard carregando com KPIs, gráficos e listas populadas
+✓ Detalhe de motorista (/logistics/motoristas/<pk>/) funcionando
+✓ Detalhe de veículo (/logistics/veiculos/<pk>/) funcionando
+✓ Criação de romaneio (/operations/romaneios/novo/) funcionando
+✓ Edição de safra sem IntegrityError (safra anterior auto-concluída)
+✓ Confirmação de romaneio (/romaneios/<pk>/confirmar/) funcionando
+✓ Notificações criadas corretamente ao confirmar romaneio
+
+PENDENTE / NÃO TESTADO AINDA:
+  - Cancelamento de romaneio (lógica de reversal do ledger_entry)
+  - Fechamento financeiro (settlement) — views de create/approve/close
+  - Exportação PDF de romaneio e settlement
+  - Tela de relatórios
+  - Tasks Celery (expiração CNH, saldo negativo)
+  - Upload de anexos
+  - Quick search no command palette (HTMX)

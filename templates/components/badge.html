@@ -1,0 +1,22 @@
+{% comment %}
+Uso: {% include "components/badge.html" with label="Ativo" color="emerald" %}
+Cores: emerald (verde), red (vermelho), amber (amarelo), sky (azul), violet (roxo), slate (cinza)
+{% endcomment %}
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+  {% if color == 'emerald' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+  {% elif color == 'red' %}bg-red-50 text-red-700 border border-red-200
+  {% elif color == 'amber' %}bg-amber-50 text-amber-700 border border-amber-200
+  {% elif color == 'violet' %}bg-violet-50 text-violet-700 border border-violet-200
+  {% elif color == 'sky' %}bg-sky-50 text-sky-700 border border-sky-200
+  {% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+  {% if dot %}
+  <span class="w-1.5 h-1.5 rounded-full mr-1.5
+    {% if color == 'emerald' %}bg-emerald-500
+    {% elif color == 'red' %}bg-red-500
+    {% elif color == 'amber' %}bg-amber-500
+    {% elif color == 'violet' %}bg-violet-500
+    {% elif color == 'sky' %}bg-sky-500
+    {% else %}bg-slate-400{% endif %}"></span>
+  {% endif %}
+  {{ label }}
+</span>

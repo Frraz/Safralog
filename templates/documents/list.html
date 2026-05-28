@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Documentos{% endblock %}
+{% block mobile_title %}Documentos{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">Documentos</h1>
+      <p class="text-sm text-slate-400 mt-0.5">Arquivos e certificados dos colaboradores</p>
+    </div>
+    <a href="{% url 'documents:create' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold rounded-xl transition shadow-sm shadow-sky-500/20 flex-shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+      </svg>
+      Adicionar documento
+    </a>
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+    <form method="get" class="flex flex-wrap gap-3 items-end">
+      <div class="w-52">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Tipo</label>
+        <select name="type"
+          class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white
+                 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+          <option value="">Todos os tipos</option>
+          {% for dt in document_types %}
+          <option value="{{ dt.pk }}" {% if request.GET.type == dt.pk|stringformat:"s" %}selected{% endif %}>
+            {{ dt.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="w-40">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Status</label>
+        <select name="status"
+          class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white
+                 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+          <option value="">Todos</option>
+          {% for val, label in statuses %}
+          <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit"
+          class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold rounded-lg transition">
+          Filtrar
+        </button>
+        {% if request.GET.type or request.GET.status %}
+        <a href="{% url 'documents:list' %}"
+          class="px-4 py-2 bg-white border border-slate-200 text-slate-500 hover:text-slate-700 text-sm rounded-lg transition">
+          Limpar
+        </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabela -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    {% if documents %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-slate-100 bg-slate-50/70">
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Colaborador</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide hidden sm:table-cell">Tipo</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wide">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide hidden md:table-cell">Vencimento</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for doc in documents %}
+        <tr class="hover:bg-slate-50/60 transition group">
+          <td class="px-4 py-3 font-semibold text-slate-900">{{ doc.person.name }}</td>
+          <td class="px-4 py-3 text-slate-500 hidden sm:table-cell">{{ doc.document_type.name }}</td>
+          <td class="px-4 py-3 text-center">
+            {% if doc.status == 'valid' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Válido
+            </span>
+            {% elif doc.status == 'expiring' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Vencendo
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Vencido
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-slate-500 hidden md:table-cell">
+            {{ doc.expiry_date|date:"d/m/Y"|default:"—" }}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition">
+              {% if doc.file %}
+              <a href="{{ doc.file.url }}" target="_blank" rel="noopener"
+                class="p-1.5 text-slate-400 hover:text-sky-600 rounded-lg hover:bg-sky-50 transition"
+                title="Visualizar arquivo">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </a>
+              {% endif %}
+              <form method="post" action="{% url 'documents:delete' doc.pk %}"
+                onsubmit="return confirm('Remover este documento permanentemente?')">
+                {% csrf_token %}
+                <button type="submit"
+                  class="p-1.5 text-slate-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition"
+                  title="Remover">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="px-4 pb-4">
+      {% include "partials/pagination.html" with page_obj=page_obj %}
+    </div>
+    {% else %}
+    <div class="py-16 text-center">
+      <div class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <p class="text-sm font-semibold text-slate-600 mb-1">Nenhum documento encontrado</p>
+      <p class="text-xs text-slate-400 mb-4">Adicione o primeiro documento para começar.</p>
+      <a href="{% url 'documents:create' %}"
+        class="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold rounded-xl transition">
+        Adicionar documento
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

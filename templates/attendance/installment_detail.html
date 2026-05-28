@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Parcelamento — {{ installment.person.name }}{% endblock %}
+{% block mobile_title %}Parcelamento{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <div class="flex items-center gap-3">
+    <a href="{% url 'attendance:installment_list' %}"
+      class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">{{ installment.description }}</h1>
+      <p class="text-sm text-slate-400 mt-0.5">
+        {{ installment.person.name }} &middot; {{ installment.get_installment_type_display }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Cards de resumo -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Valor total</p>
+      <p class="text-xl font-bold text-red-600">R$ {{ installment.total_value|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Parcelas</p>
+      <p class="text-xl font-bold text-slate-900">{{ installment.num_installments }}x</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Por mês</p>
+      <p class="text-xl font-bold text-slate-900">R$ {{ installment.installment_value|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Início</p>
+      <p class="text-xl font-bold text-slate-900">
+        {{ installment.first_reference_month|stringformat:"02d" }}/{{ installment.first_reference_year }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Tabela de parcelas -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-slate-100">
+      <h2 class="text-sm font-semibold text-slate-700">Parcelas geradas</h2>
+    </div>
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-slate-100 bg-slate-50/70">
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wide">Parcela</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Mês de referência</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide">Valor</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wide">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for parcela in parcelas %}
+        <tr class="{% if parcela.is_deleted %}opacity-50{% endif %}">
+          <td class="px-4 py-3 text-center font-bold text-slate-600">
+            {{ parcela.installment_number }}/{{ installment.num_installments }}
+          </td>
+          <td class="px-4 py-3 text-slate-700">
+            {{ parcela.reference_month|stringformat:"02d" }}/{{ parcela.reference_year }}
+          </td>
+          <td class="px-4 py-3 text-right font-bold text-red-600">
+            R$ {{ parcela.value|floatformat:2 }}
+          </td>
+          <td class="px-4 py-3 text-center">
+            {% if parcela.is_deleted %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+              Cancelada
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Ativa
+            </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios{% endblock %}
+{% block nav_title %}Relatórios{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+    <a href="{% url 'reports:waybill-export' %}"
+       class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800
+              p-5 hover:border-green-300 dark:hover:border-green-700 hover:shadow-sm transition-all group">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center group-hover:bg-green-200 transition-colors">
+          <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Exportar Romaneios</h3>
+      </div>
+      <p class="text-xs text-gray-500 dark:text-gray-400">
+        Exporta todos os romaneios do período em CSV para análise no Excel.
+      </p>
+    </a>
+
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 opacity-60">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Produtividade por Talhão</h3>
+          <span class="text-xs text-gray-400">Em breve</span>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500 dark:text-gray-400">
+        Tonelagem e produtividade por talhão e safra.
+      </p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

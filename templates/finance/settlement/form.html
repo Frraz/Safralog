@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Fechamento{% endblock %}
+{% block nav_title %}Novo Fechamento{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+
+    {# BUG #2 FIX — exibir erros globais do formulário #}
+    {% if form.non_field_errors %}
+    <div class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800 px-4 py-3">
+      {% for error in form.non_field_errors %}
+      <p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+
+      <div class="px-4 py-4 space-y-3">
+        <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Motorista</h3>
+        <div>
+          <label class="label" for="driver">Motorista *</label>
+          <select name="driver" id="driver" class="input w-full" required>
+            <option value="">Selecione...</option>
+            {% for driver in drivers %}
+            <option value="{{ driver.pk }}">{{ driver.name }}</option>
+            {% endfor %}
+          </select>
+          {# BUG #2 FIX — erro por campo #}
+          {% if form.driver.errors %}
+          <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.driver.errors.0 }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="px-4 py-4 space-y-3">
+        <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Período</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label" for="period_start">Data início *</label>
+            <input type="date" name="period_start" id="period_start"
+                   class="input w-full" required />
+            {# BUG #2 FIX — erro por campo #}
+            {% if form.period_start.errors %}
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.period_start.errors.0 }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="label" for="period_end">Data fim *</label>
+            <input type="date" name="period_end" id="period_end"
+                   class="input w-full" required
+                   value="{{ default_period_end|date:'Y-m-d' }}" />
+            {# BUG #2 FIX — erro por campo #}
+            {% if form.period_end.errors %}
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.period_end.errors.0 }}</p>
+            {% endif %}
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          Serão incluídos todos os romaneios <strong>confirmados</strong> do motorista neste período.
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit"
+              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+        Gerar Fechamento
+      </button>
+      <a href="{% url 'finance:settlement-list' %}"
+         class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 transition-colors">
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

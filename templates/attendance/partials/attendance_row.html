@@ -1,0 +1,37 @@
+<tr class="hover:bg-slate-50/60 transition group">
+  <td class="px-4 py-3 font-semibold text-slate-900">{{ adj.person.name }}</td>
+  <td class="px-4 py-3">
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+      {% if adj.value < 0 %}bg-red-50 text-red-700 border border-red-200
+      {% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+      {{ adj.get_adjustment_type_display }}
+    </span>
+  </td>
+  <td class="px-4 py-3 text-slate-500 text-xs max-w-xs truncate hidden md:table-cell">
+    {{ adj.description }}
+    {% if adj.installment_number %}
+    <span class="text-slate-400">({{ adj.installment_number }}/{{ adj.installment.num_installments }})</span>
+    {% endif %}
+  </td>
+  <td class="px-4 py-3 hidden sm:table-cell">
+    <span class="text-xs text-slate-400">{{ adj.get_origin_display }}</span>
+  </td>
+  <td class="px-4 py-3 text-right font-bold {% if adj.value < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
+    R$ {{ adj.value|floatformat:2 }}
+  </td>
+  <td class="px-4 py-3 text-right">
+    {% if adj.origin == 'manual' %}
+    <form method="post" action="{% url 'attendance:delete' adj.pk %}"
+      onsubmit="return confirm('Remover este ajuste?')" class="inline">
+      {% csrf_token %}
+      <button type="submit"
+        class="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition opacity-0 group-hover:opacity-100">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+      </button>
+    </form>
+    {% endif %}
+  </td>
+</tr>

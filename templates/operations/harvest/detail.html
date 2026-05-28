@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}{{ harvest.name }}{% endblock %}
+{% block nav_title %}{{ harvest.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+
+  <div class="flex items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      {% if harvest.status == "active" %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Ativa</span>
+      {% else %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800">Encerrada</span>
+      {% endif %}
+      <span class="text-sm text-gray-500">{{ harvest.get_crop_type_display }}</span>
+    </div>
+    <a href="{% url 'operations:harvest-update' pk=harvest.pk %}"
+       class="px-3 py-1.5 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+      Editar
+    </a>
+  </div>
+
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+    <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100 dark:divide-gray-800">
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Romaneios</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ waybill_count }}</p>
+      </div>
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Área</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+          {% if harvest.expected_area_ha %}{{ harvest.expected_area_ha|floatformat:0 }}<span class="text-sm font-normal text-gray-500 ml-1">ha</span>{% else %}—{% endif %}
+        </p>
+      </div>
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Início</p>
+        <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+          {% if harvest.start_date %}{{ harvest.start_date|date:"d/m/Y" }}{% else %}—{% endif %}
+        </p>
+      </div>
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Término</p>
+        <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+          {% if harvest.end_date %}{{ harvest.end_date|date:"d/m/Y" }}{% else %}—{% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {% if fields %}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Talhões ({{ fields.count }})</h2>
+      <a href="{% url 'operations:field-create' %}" class="text-xs text-green-600 hover:text-green-700 dark:text-green-400 font-medium">
+        + Novo talhão
+      </a>
+    </div>
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
+      {% for field in fields %}
+      <a href="{% url 'operations:field-detail' pk=field.pk %}"
+         class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+        <p class="flex-1 text-sm text-gray-900 dark:text-white font-medium">{{ field.name }}</p>
+        {% if field.area_ha %}<p class="text-sm text-gray-500 dark:text-gray-400">{{ field.area_ha|floatformat:1 }} ha</p>{% endif %}
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if harvest.notes %}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Observações</p>
+    <p class="text-sm text-gray-700 dark:text-gray-300">{{ harvest.notes }}</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

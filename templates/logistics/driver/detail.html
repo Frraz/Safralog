@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}{{ driver.name }}{% endblock %}
+{% block nav_title %}{{ driver.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+
+  {# Header #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+    <div class="flex items-start gap-4">
+      <div class="shrink-0 w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-700 dark:text-green-400 font-bold text-xl">
+        {% if driver.photo %}
+          <img src="{{ driver.photo.url }}" class="w-14 h-14 rounded-full object-cover" alt="">
+        {% else %}
+          {{ driver.name|initials }}
+        {% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h1 class="text-lg font-bold text-gray-900 dark:text-white">{{ driver.name }}</h1>
+          {% driver_status_badge driver.status %}
+        </div>
+        <div class="mt-1 flex flex-wrap gap-3 text-sm text-gray-500 dark:text-gray-400">
+          {% if driver.document_cpf %}<span>CPF: {{ driver.document_cpf }}</span>{% endif %}
+          {% if driver.phone %}<span>{{ driver.phone }}</span>{% endif %}
+          {% if driver.cnh_category %}<span>CNH: {{ driver.cnh_category }}{% if driver.cnh_expiry %} (vence {{ driver.cnh_expiry|date:"d/m/Y" }}){% endif %}</span>{% endif %}
+        </div>
+      </div>
+      {% if can_edit %}
+      <div class="shrink-0 flex gap-2">
+        <a href="{% url 'logistics:driver-update' pk=driver.pk %}"
+           class="px-3 py-1.5 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+          Editar
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Stats do mês #}
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-center">
+      <p class="text-xs text-gray-500 dark:text-gray-400">Romaneios</p>
+      <p class="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{{ stats.month_waybills }}</p>
+      <p class="text-xs text-gray-400">este mês</p>
+    </div>
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-center">
+      <p class="text-xs text-gray-500 dark:text-gray-400">Tonelagem</p>
+      <p class="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{{ stats.month_net_tons|floatformat:1 }}</p>
+      <p class="text-xs text-gray-400">toneladas</p>
+    </div>
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-center">
+      <p class="text-xs text-gray-500 dark:text-gray-400">Combustível</p>
+      <p class="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{{ stats.month_fuel_liters|floatformat:0 }}</p>
+      <p class="text-xs text-gray-400">litros</p>
+    </div>
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-center">
+      <p class="text-xs text-gray-500 dark:text-gray-400">Saldo</p>
+      <p class="text-xl font-bold mt-0.5
+                {% if balance and balance >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+        {% if balance is not None %}{{ balance|currency_br }}{% else %}—{% endif %}
+      </p>
+      <p class="text-xs text-gray-400">conta</p>
+    </div>
+  </div>
+
+  {# Romaneios recentes #}
+  {% if recent_waybills %}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Últimos Romaneios</h2>
+      <a href="{% url 'operations:waybill-list' %}?driver={{ driver.pk }}"
+         class="text-xs text-green-600 hover:text-green-700 dark:text-green-400 font-medium">
+        Ver todos →
+      </a>
+    </div>
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
+      {% for wb in recent_waybills %}
+      <a href="{% url 'operations:waybill-detail' pk=wb.pk %}"
+         class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+        <span class="text-xs font-mono font-bold text-gray-400 w-12 shrink-0">#{{ wb.number|stringformat:"05d" }}</span>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ wb.field.name|default:"—" }}</span>
+            {% waybill_status_badge wb.status %}
+          </div>
+          <span class="text-xs text-gray-400">{{ wb.operation_date|date:"d/m/Y" }} · {{ wb.vehicle.plate }}</span>
+        </div>
+        <span class="shrink-0 text-sm font-semibold text-gray-900 dark:text-white">{{ wb.net_weight_tons|floatformat:2 }} t</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# Abastecimentos recentes #}
+  {% if recent_fuelings %}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Abastecimentos Recentes</h2>
+    </div>
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
+      {% for f in recent_fuelings %}
+      <div class="flex items-center gap-3 px-4 py-3">
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-700 dark:text-gray-300">{{ f.vehicle.plate }}</p>
+          <p class="text-xs text-gray-400">{{ f.fueling_date|date:"d/m/Y" }}</p>
+        </div>
+        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ f.liters|floatformat:1 }} L</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

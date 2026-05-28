@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Romaneios — Exportação</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; font-size: 9pt; color: #111827; line-height: 1.4; }
+
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid #16a34a; }
+    .header h1 { font-size: 15pt; font-weight: 700; color: #16a34a; }
+    .header-sub { font-size: 8.5pt; color: #6b7280; margin-top: 2px; }
+    .doc-label { font-size: 10pt; font-weight: 700; text-align: right; }
+    .doc-date { font-size: 8.5pt; color: #6b7280; text-align: right; margin-top: 2px; }
+
+    /* Filtros aplicados */
+    .filters { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 12px; margin-bottom: 16px; font-size: 8pt; color: #6b7280; }
+    .filters strong { color: #374151; }
+
+    /* Tabela principal */
+    table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+    thead th { background: #111827; color: #fff; padding: 6px 6px; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #374151; }
+    thead th.right { text-align: right; }
+    tbody tr:nth-child(even) { background: #f9fafb; }
+    tbody td { padding: 5px 6px; border: 1px solid #e5e7eb; vertical-align: middle; }
+    tbody td.right { text-align: right; white-space: nowrap; }
+    tbody td.center { text-align: center; }
+    tbody td.muted { color: #9ca3af; font-size: 7.5pt; }
+
+    /* Status badges */
+    .badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 7pt; font-weight: 700; }
+    .badge-confirmed { background: #dcfce7; color: #15803d; }
+    .badge-settled   { background: #dbeafe; color: #1e40af; }
+    .badge-draft     { background: #f3f4f6; color: #6b7280; }
+    .badge-cancelled { background: #fee2e2; color: #dc2626; }
+
+    /* Rodapé da tabela — totais */
+    tfoot td { padding: 7px 6px; border: 1px solid #374151; font-weight: 700; font-size: 8.5pt; background: #f0fdf4; }
+    tfoot td.right { text-align: right; }
+
+    /* Resumo financeiro */
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 2px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-top: 16px; }
+    .summary-item { padding: 10px 14px; text-align: center; border-right: 1px solid #e5e7eb; }
+    .summary-item:last-child { border-right: none; }
+    .summary-item.highlight { background: #f0fdf4; }
+    .s-label { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; }
+    .s-value { font-size: 11pt; font-weight: 800; color: #111827; margin-top: 2px; }
+    .summary-item.highlight .s-value { color: #15803d; }
+
+    .footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 7.5pt; color: #9ca3af; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>{{ tenant.name|upper }}</h1>
+      <div class="header-sub">Relatório de Romaneios — Exportação</div>
+    </div>
+    <div>
+      <div class="doc-label">{{ summary.count }} romaneio{{ summary.count|pluralize }}</div>
+      <div class="doc-date">Gerado em {% now "d/m/Y \à\s H:i" %}</div>
+    </div>
+  </div>
+
+  {% if filters.status or filters.date_start or filters.date_end %}
+  <div class="filters">
+    <strong>Filtros aplicados:</strong>
+    {% if filters.status %} Status: <strong>{{ filters.status }}</strong>{% endif %}
+    {% if filters.date_start %} De: <strong>{{ filters.date_start }}</strong>{% endif %}
+    {% if filters.date_end %} Até: <strong>{{ filters.date_end }}</strong>{% endif %}
+  </div>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 55px;">#</th>
+        <th style="width: 70px;">Data</th>
+        <th>Motorista</th>
+        <th>Veículo</th>
+        <th>Talhão</th>
+        <th class="right" style="width: 80px;">Bruto (kg)</th>
+        <th class="right" style="width: 80px;">Tara (kg)</th>
+        <th class="right" style="width: 70px;">Líq. (t)</th>
+        <th class="right" style="width: 80px;">Valor (R$)</th>
+        <th class="center" style="width: 70px;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for w in waybills %}
+      <tr>
+        <td class="muted">{{ w.number|stringformat:"05d" }}</td>
+        <td class="muted">{{ w.operation_date|date:"d/m/Y" }}</td>
+        <td>{{ w.driver.name }}</td>
+        <td class="muted">{{ w.vehicle.plate|default:"—" }}</td>
+        <td class="muted">{{ w.field.name|default:"—" }}</td>
+        <td class="right">{{ w.gross_weight|floatformat:0 }}</td>
+        <td class="right">{{ w.tare_weight|floatformat:0 }}</td>
+        <td class="right"><strong>{{ w.net_weight_tons|floatformat:3 }}</strong></td>
+        <td class="right"><strong>{{ w.total_value|floatformat:2 }}</strong></td>
+        <td class="center">
+          <span class="badge
+            {% if w.status == 'confirmed' %}badge-confirmed
+            {% elif w.status == 'settled' %}badge-settled
+            {% elif w.status == 'cancelled' %}badge-cancelled
+            {% else %}badge-draft{% endif %}
+          ">{{ w.get_status_display }}</span>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="10" style="text-align: center; color: #9ca3af; padding: 20px;">
+          Nenhum romaneio encontrado.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% if waybills %}
+    <tfoot>
+      <tr>
+        <td colspan="5"><strong>TOTAL ({{ summary.count }} romaneios)</strong></td>
+        <td class="right">{{ summary.total_gross|floatformat:0 }}</td>
+        <td class="right">{{ summary.total_tare|floatformat:0 }}</td>
+        <td class="right"><strong>{{ summary.total_tons|floatformat:3 }}</strong></td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+
+  <!-- RESUMO -->
+  <div class="summary-grid">
+    <div class="summary-item">
+      <div class="s-label">Romaneios</div>
+      <div class="s-value">{{ summary.count }}</div>
+    </div>
+    <div class="summary-item">
+      <div class="s-label">Peso Bruto Total</div>
+      <div class="s-value">{{ summary.total_gross|floatformat:0 }} kg</div>
+    </div>
+    <div class="summary-item">
+      <div class="s-label">Peso Líquido Total</div>
+      <div class="s-value">{{ summary.total_net|floatformat:0 }} kg</div>
+    </div>
+    <div class="summary-item highlight">
+      <div class="s-label">Tonelagem Líquida</div>
+      <div class="s-value">{{ summary.total_tons|floatformat:3 }} t</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    SafraLog &middot; {{ tenant.name }} &middot; Relatório gerado em {% now "d/m/Y \à\s H:i" %}
+    {% if summary.count >= 500 %}&middot; <strong>Limitado a 500 registros</strong>{% endif %}
+  </div>
+
+</body>
+</html>

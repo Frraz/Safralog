@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{% if action == 'edit' %}Editar Fazenda{% else %}Nova Fazenda{% endif %}{% endblock %}
+{% block mobile_title %}{% if action == 'edit' %}Editar Fazenda{% else %}Nova Fazenda{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto space-y-5">
+
+  <div class="flex items-center gap-3">
+    <a href="{% url 'employees:farm_list' %}"
+      class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <h1 class="text-xl font-bold text-slate-900">
+      {% if action == 'edit' %}Editar Fazenda{% else %}Nova Fazenda{% endif %}
+    </h1>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <form method="post" class="divide-y divide-slate-100">
+      {% csrf_token %}
+      <div class="p-5 space-y-4">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Entidade <span class="text-red-500">*</span>
+          </label>
+          <select name="entity"
+            class="w-full px-3 py-2.5 rounded-lg border {% if form.entity.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800 bg-white
+                   focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+            <option value="">Selecione a entidade</option>
+            {% for entity in form.entity.field.queryset %}
+            <option value="{{ entity.pk }}"
+              {% if form.entity.value|stringformat:"s" == entity.pk|stringformat:"s" %}selected{% endif %}>
+              {{ entity.name }}
+            </option>
+            {% endfor %}
+          </select>
+          {% if form.entity.errors %}<p class="mt-1 text-xs text-red-600">{{ form.entity.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Nome da fazenda <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="name" value="{{ form.name.value|default:'' }}"
+            class="w-full px-3 py-2.5 rounded-lg border {% if form.name.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800
+                   focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+            placeholder="Nome da propriedade">
+          {% if form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Cidade</label>
+            <input type="text" name="city" value="{{ form.city.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="Cidade">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">UF</label>
+            <input type="text" name="state" value="{{ form.state.value|default:'' }}" maxlength="2"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 uppercase
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="UF">
+          </div>
+        </div>
+
+      </div>
+      <div class="px-5 py-4 bg-slate-50/50 flex items-center justify-between">
+        <a href="{% url 'employees:farm_list' %}"
+          class="text-sm font-medium text-slate-500 hover:text-slate-700 transition">Cancelar</a>
+        <button type="submit"
+          class="px-5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold rounded-xl transition shadow-sm shadow-sky-500/20">
+          {% if action == 'edit' %}Salvar alterações{% else %}Cadastrar fazenda{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,649 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full"
+      x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', showPass: false, loading: false }"
+      :class="{ 'dark': darkMode }">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrar — SafraLog</title>
+  <link rel="stylesheet" href="{% static 'css/dist/main.css' %}" />
+  <link rel="icon" type="image/png" href="{% static 'img/logo-safralog.png' %}" />
+  <script src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; }
+
+    .login-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100dvh;
+    }
+    @media (max-width: 900px) {
+      .login-wrap { grid-template-columns: 1fr; }
+      .login-panel { display: none; }
+    }
+
+    /* LEFT PANEL */
+    .login-panel {
+      position: relative;
+      background: #0c2716;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 3rem;
+    }
+    .login-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .panel-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    .glow-1 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(34,197,94,0.18) 0%, transparent 70%);
+      top: -80px; left: -80px;
+      animation: driftA 14s ease-in-out infinite alternate;
+    }
+    .glow-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(161,98,7,0.12) 0%, transparent 70%);
+      bottom: -120px; right: -120px;
+      animation: driftB 18s ease-in-out infinite alternate;
+    }
+    .glow-3 {
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(21,128,61,0.15) 0%, transparent 70%);
+      top: 40%; left: 30%;
+      animation: driftC 22s ease-in-out infinite alternate;
+    }
+    @keyframes driftA {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(60px,40px) scale(1.15); }
+    }
+    @keyframes driftB {
+      from { transform: translate(0,0) scale(1.1); }
+      to   { transform: translate(-50px,-60px) scale(1); }
+    }
+    @keyframes driftC {
+      from { transform: translate(0,0); }
+      to   { transform: translate(30px,-40px); }
+    }
+    .stalks-svg {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      opacity: 0.07;
+      pointer-events: none;
+    }
+    .panel-content { position: relative; z-index: 2; }
+
+    .panel-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+      margin-top: 2rem;
+    }
+    .panel-brand span { color: #4ade80; }
+
+    .panel-tagline {
+      color: rgba(255,255,255,0.45);
+      font-size: 0.875rem;
+      font-weight: 300;
+      margin-top: 1rem;
+      line-height: 1.7;
+      max-width: 320px;
+    }
+    .panel-divider {
+      width: 2rem;
+      height: 1px;
+      background: rgba(74,222,128,0.4);
+      margin: 1.75rem 0;
+    }
+    .panel-features {
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+    .panel-feature {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .feature-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      flex-shrink: 0;
+    }
+    .feature-text {
+      font-size: 0.8125rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.4;
+    }
+    .panel-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: auto;
+      padding-top: 3rem;
+    }
+    .stat-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.75rem;
+      color: #fff;
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 0.25rem;
+    }
+
+    /* Ferzion credit */
+    .panel-ferzion {
+      position: relative;
+      z-index: 2;
+      margin-top: 2rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      flex-wrap: wrap;
+    }
+    .ferzion-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.2);
+    }
+    .ferzion-sep {
+      width: 1px; height: 10px;
+      background: rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+    .ferzion-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .ferzion-name:hover { color: rgba(74,222,128,0.75); }
+    .ferzion-tagline {
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.13);
+    }
+
+    /* RIGHT PANEL */
+    .login-form-side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: #f8fafc;
+      transition: background 0.3s;
+    }
+    .dark .login-form-side { background: #030712; }
+
+    .form-card {
+      width: 100%;
+      max-width: 400px;
+      animation: cardReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes cardReveal {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .form-card > * { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .form-card > *:nth-child(1) { animation-delay: 0.05s; }
+    .form-card > *:nth-child(2) { animation-delay: 0.12s; }
+    .form-card > *:nth-child(3) { animation-delay: 0.19s; }
+    .form-card > *:nth-child(4) { animation-delay: 0.26s; }
+    .form-card > *:nth-child(5) { animation-delay: 0.33s; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-mark {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(21,128,61,0.25);
+      margin-bottom: 1.5rem;
+    }
+    .logo-mark img { width: 32px; height: 32px; object-fit: contain; filter: brightness(1.1); }
+
+    .form-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.2;
+      margin-bottom: 0.375rem;
+    }
+    .dark .form-title { color: #f8fafc; }
+
+    .form-subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 2rem;
+    }
+    .dark .form-subtitle { color: #475569; }
+
+    .field-group { margin-bottom: 1.125rem; }
+
+    .field-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .dark .field-label { color: #9ca3af; }
+
+    .field-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 1.5px solid #e2e8f0;
+      background: #fff;
+      color: #0f172a;
+      font-size: 0.9rem;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .field-input:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+    }
+    .field-input::placeholder { color: #cbd5e1; }
+    .dark .field-input {
+      background: #0f172a;
+      border-color: #1e293b;
+      color: #f1f5f9;
+    }
+    .dark .field-input:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+    }
+    .dark .field-input::placeholder { color: #334155; }
+
+    .pass-wrap { position: relative; }
+    .pass-toggle {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #94a3b8;
+      padding: 0.25rem;
+      transition: color 0.15s;
+      line-height: 0;
+    }
+    .pass-toggle:hover { color: #22c55e; }
+
+    .error-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.625rem;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+      animation: shake 0.45s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    .dark .error-box {
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.2);
+    }
+    @keyframes shake {
+      10%, 90% { transform: translateX(-2px); }
+      20%, 80% { transform: translateX(3px); }
+      30%, 50%, 70% { transform: translateX(-3px); }
+      40%, 60% { transform: translateX(3px); }
+    }
+    .error-text { font-size: 0.8125rem; color: #dc2626; line-height: 1.5; }
+    .dark .error-text { color: #f87171; }
+
+    .remember-row { display: flex; align-items: center; margin-bottom: 1.5rem; }
+    .remember-left { display: flex; align-items: center; gap: 0.5rem; }
+    .remember-check { width: 1rem; height: 1rem; border-radius: 4px; accent-color: #16a34a; cursor: pointer; }
+    .remember-label { font-size: 0.8125rem; color: #64748b; cursor: pointer; }
+    .dark .remember-label { color: #475569; }
+
+    .forgot-link {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #16a34a;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .forgot-link:hover { color: #15803d; }
+    .dark .forgot-link { color: #4ade80; }
+    .dark .forgot-link:hover { color: #86efac; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(21,128,61,0.35);
+      letter-spacing: 0.01em;
+    }
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(21,128,61,0.45);
+    }
+    .btn-submit:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(21,128,61,0.25);
+    }
+    .btn-submit:disabled { opacity: 0.75; cursor: not-allowed; }
+    .btn-submit::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%);
+      transform: translateX(-100%);
+      transition: transform 0.4s;
+    }
+    .btn-submit:hover::after { transform: translateX(100%); }
+
+    .btn-spinner {
+      display: inline-block;
+      width: 15px; height: 15px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .form-footer {
+      margin-top: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .footer-copy { font-size: 0.7rem; color: #94a3b8; text-align: center; }
+    .dark .footer-copy { color: #334155; }
+
+    .dark-toggle {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      z-index: 10;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.12);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: #94a3b8;
+      transition: background 0.2s, color 0.2s;
+    }
+    .dark-toggle:hover { background: rgba(255,255,255,0.15); color: #e2e8f0; }
+    .dark .dark-toggle {
+      background: rgba(0,0,0,0.3);
+      border-color: rgba(255,255,255,0.06);
+    }
+  </style>
+</head>
+
+<body class="h-full">
+
+  <!-- Dark mode toggle -->
+  <button class="dark-toggle"
+          @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
+          :title="darkMode ? 'Modo claro' : 'Modo escuro'"
+          aria-label="Alternar tema">
+    <svg x-show="!darkMode" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:block">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+    </svg>
+    <svg x-show="darkMode" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:none">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+    </svg>
+  </button>
+
+  <div class="login-wrap">
+
+    <!-- LEFT PANEL -->
+    <div class="login-panel">
+      <div class="panel-glow glow-1"></div>
+      <div class="panel-glow glow-2"></div>
+      <div class="panel-glow glow-3"></div>
+
+      <svg class="stalks-svg" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">
+        <g stroke="#4ade80" stroke-width="1.5">
+          <line x1="60"  y1="400" x2="60"  y2="200"/>
+          <line x1="120" y1="400" x2="120" y2="180"/>
+          <line x1="180" y1="400" x2="180" y2="220"/>
+          <line x1="240" y1="400" x2="240" y2="160"/>
+          <line x1="300" y1="400" x2="300" y2="190"/>
+          <line x1="360" y1="400" x2="360" y2="210"/>
+          <line x1="420" y1="400" x2="420" y2="170"/>
+          <line x1="480" y1="400" x2="480" y2="200"/>
+          <line x1="540" y1="400" x2="540" y2="185"/>
+          <path d="M60 280 Q90 260 80 240"/>
+          <path d="M120 260 Q150 240 140 220"/>
+          <path d="M180 300 Q210 280 200 260"/>
+          <path d="M240 240 Q270 220 260 200"/>
+          <path d="M300 270 Q330 250 320 230"/>
+          <path d="M360 290 Q390 270 380 250"/>
+          <path d="M420 250 Q450 230 440 210"/>
+          <path d="M480 280 Q510 260 500 240"/>
+          <path d="M540 265 Q570 245 560 225"/>
+        </g>
+        <g fill="#4ade80">
+          <ellipse cx="60"  cy="196" rx="4" ry="10"/>
+          <ellipse cx="120" cy="176" rx="4" ry="10"/>
+          <ellipse cx="180" cy="216" rx="4" ry="10"/>
+          <ellipse cx="240" cy="156" rx="4" ry="10"/>
+          <ellipse cx="300" cy="186" rx="4" ry="10"/>
+          <ellipse cx="360" cy="206" rx="4" ry="10"/>
+          <ellipse cx="420" cy="166" rx="4" ry="10"/>
+          <ellipse cx="480" cy="196" rx="4" ry="10"/>
+          <ellipse cx="540" cy="181" rx="4" ry="10"/>
+        </g>
+      </svg>
+
+      <!-- Logo SafraLog -->
+      <div class="panel-content">
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <img src="{% static 'img/logo-safralog.png' %}" alt="SafraLog"
+               style="width:34px;height:34px;object-fit:contain;filter:brightness(1.2);" />
+          <span style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:1rem;
+                       color:rgba(255,255,255,0.8);letter-spacing:-0.01em;">SafraLog</span>
+        </div>
+      </div>
+
+      <!-- Headline -->
+      <div class="panel-content" style="margin-top:auto;padding-top:3rem;">
+        <p class="panel-brand">
+          Da lavoura ao<br/>
+          <span>fechamento</span><br/>
+          com precisão.
+        </p>
+        <p class="panel-tagline">
+          Controle total de romaneios, frota e acerto financeiro com motoristas — feito para o ritmo da safra.
+        </p>
+
+        <div class="panel-divider"></div>
+
+        <div class="panel-features">
+          <div class="panel-feature">
+            <div class="feature-dot"></div>
+            <span class="feature-text">Ledger financeiro imutável e auditável</span>
+          </div>
+          <div class="panel-feature">
+            <div class="feature-dot"></div>
+            <span class="feature-text">Saldo de motoristas em tempo real</span>
+          </div>
+          <div class="panel-feature">
+            <div class="feature-dot"></div>
+            <span class="feature-text">Multi-tenant com isolamento total de dados</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="panel-content">
+        <div class="panel-stats">
+          <div>
+            <div class="stat-value">98%</div>
+            <div class="stat-label">Uptime</div>
+          </div>
+          <div>
+            <div class="stat-value">&lt; 2s</div>
+            <div class="stat-label">Resposta</div>
+          </div>
+          <div>
+            <div class="stat-value">100%</div>
+            <div class="stat-label">Auditável</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ferzion credit -->
+      <div class="panel-ferzion">
+        <span class="ferzion-label">Desenvolvido por</span>
+        <div class="ferzion-sep"></div>
+        <span class="ferzion-name">Ferzion</span>
+        <div class="ferzion-sep"></div>
+        <span class="ferzion-tagline">Precisão · Estratégia · Identidade</span>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="login-form-side">
+      <div class="form-card">
+
+        <div class="logo-mark">
+          <img src="{% static 'img/logo-safralog.png' %}" alt="SafraLog" />
+        </div>
+
+        <h1 class="form-title">Bem-vindo de volta</h1>
+        <p class="form-subtitle">Acesse sua conta para continuar.</p>
+
+        {% if form.errors %}
+        <div class="error-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"
+               viewBox="0 0 24 24" stroke="#dc2626" style="flex-shrink:0;margin-top:1px">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="error-text">E-mail ou senha incorretos. Verifique seus dados e tente novamente.</p>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'account_login' %}" @submit="loading = true">
+          {% csrf_token %}
+          {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+          {% endif %}
+
+          <div class="field-group">
+            <label class="field-label" for="id_login">E-mail</label>
+            <input type="email" name="login" id="id_login"
+                   class="field-input"
+                   placeholder="seu@email.com.br"
+                   autocomplete="email" autofocus
+                   value="{{ form.login.value|default:'' }}" />
+          </div>
+
+          <div class="field-group">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+              <label class="field-label" for="id_password" style="margin-bottom:0;">Senha</label>
+              <a href="{% url 'account_reset_password' %}" class="forgot-link">Esqueci a senha</a>
+            </div>
+            <div class="pass-wrap">
+              <input :type="showPass ? 'text' : 'password'"
+                     name="password" id="id_password"
+                     class="field-input"
+                     style="padding-right:2.75rem;"
+                     placeholder="••••••••"
+                     autocomplete="current-password" />
+              <button type="button" class="pass-toggle" @click="showPass = !showPass"
+                      :aria-label="showPass ? 'Ocultar senha' : 'Mostrar senha'">
+                <svg x-show="!showPass" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:block">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <svg x-show="showPass" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:none">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="remember-row">
+            <div class="remember-left">
+              <input type="checkbox" name="remember" id="id_remember" class="remember-check" checked />
+              <label for="id_remember" class="remember-label">Manter conectado</label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit" :disabled="loading">
+            <span x-show="loading" class="btn-spinner" style="display:none"></span>
+            <span x-text="loading ? 'Entrando...' : 'Entrar'">Entrar</span>
+          </button>
+        </form>
+
+        <div class="form-footer">
+          <span class="footer-copy">SafraLog &copy; {% now "Y" %}</span>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

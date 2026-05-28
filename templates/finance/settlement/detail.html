@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}Fechamento — {% if settlement.account %}{{ settlement.account.name }}{% else %}—{% endif %}{% endblock %}
+{% block nav_title %}Fechamento / Acerto{% endblock %}
+
+{% block quick_action %}
+<a href="{% url 'reports:settlement-pdf' pk=settlement.pk %}"
+   class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+          bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+   target="_blank">
+  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+  </svg>
+  Gerar PDF
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4" x-data="{
+  showPayModal: false,
+  overrideModal: { open: false, category: '', objectId: '', field: '', currentValue: '', note: '' },
+  openOverride(cat, id, field, currentVal, note) {
+    this.overrideModal = { open: true, category: cat, objectId: id, field: field, currentValue: currentVal, note: note || '' };
+  },
+  async saveOverride() {
+    const r = await fetch('{% url "finance:settlement-override" pk=settlement.pk %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content
+      },
+      body: JSON.stringify(this.overrideModal)
+    });
+    const data = await r.json();
+    if (data.ok) { window.location.reload(); }
+    else { alert(data.error || 'Erro ao salvar.'); }
+  },
+  async removeOverride(cat, id) {
+    if (!confirm('Remover ajuste manual e usar valor original?')) return;
+    const r = await fetch('{% url "finance:settlement-override" pk=settlement.pk %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content },
+      body: JSON.stringify({ category: cat, objectId: id, value: null })
+    });
+    const data = await r.json();
+    if (data.ok) window.location.reload();
+  }
+}">
+
+  {# ── Status + ações rápidas ── #}
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <div class="flex items-center gap-2 flex-wrap">
+      {% settlement_status_badge settlement.status %}
+      <span class="text-sm text-gray-500 dark:text-gray-400">
+        {{ settlement.period_start|date:"d/m/Y" }} → {{ settlement.period_end|date:"d/m/Y" }}
+      </span>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+      {% if can_approve %}
+      <form method="post" action="{% url 'finance:settlement-approve' pk=settlement.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg">
+          Aprovar
+        </button>
+      </form>
+      {% endif %}
+      {% if can_pay %}
+      <button @click="showPayModal = true"
+              class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Marcar como Pago
+      </button>
+      {% endif %}
+      {% if can_cancel %}
+      <form method="post" action="{% url 'finance:settlement-cancel' pk=settlement.pk %}" x-ref="formCancelar">
+        {% csrf_token %}
+        <button type="button"
+                @click="if(confirm('Cancelar este acerto? Os romaneios voltarão para Confirmado.')) $refs.formCancelar.submit()"
+                class="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg">
+          Cancelar
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Comprovante de pagamento (quando pago) ── #}
+  {% if settlement.is_paid %}
+  <div class="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-xl p-4">
+    <div class="flex items-start gap-3">
+      <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <div class="flex-1">
+        <p class="text-sm font-bold text-green-800 dark:text-green-300">
+          Pago em {{ settlement.payment_date|date:"d/m/Y" }}
+        </p>
+        {% if settlement.paid_by %}
+        <p class="text-xs text-green-600 dark:text-green-400 mt-0.5">
+          Registrado por {{ settlement.paid_by.get_full_name|default:settlement.paid_by.email }}
+          em {{ settlement.paid_at|date:"d/m/Y H:i" }}
+        </p>
+        {% endif %}
+        {% if settlement.payment_notes %}
+        <p class="text-sm text-green-700 dark:text-green-300 mt-2 p-2 bg-green-100/60 dark:bg-green-900/20 rounded">
+          {{ settlement.payment_notes }}
+        </p>
+        {% endif %}
+        {% if settlement.payment_proof %}
+        <a href="{{ settlement.payment_proof.url }}" target="_blank"
+           class="inline-flex items-center gap-1.5 mt-2 text-sm text-green-700 dark:text-green-400 hover:underline font-medium">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+          </svg>
+          Ver comprovante de pagamento
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Resumo financeiro ── #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100 dark:divide-gray-800">
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Produção</p>
+        <p class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+          {{ settlement.snapshot_total_credits|currency_br }}
+        </p>
+        <p class="text-xs text-gray-400 mt-0.5">{{ settlement.snapshot_waybill_count|default:"—" }} rom.</p>
+      </div>
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Descontos</p>
+        <p class="mt-1 text-xl font-bold text-red-600 dark:text-red-400">
+          − {{ settlement.snapshot_total_debits|currency_br }}
+        </p>
+        <p class="text-xs text-gray-400 mt-0.5">comb. + adiant.</p>
+      </div>
+      <div class="px-4 py-4 text-center col-span-2 sm:col-span-1
+                  {% if settlement.snapshot_net_balance is not None and settlement.snapshot_net_balance >= 0 %}bg-green-50 dark:bg-green-900/10{% else %}bg-red-50 dark:bg-red-900/10{% endif %}
+                  rounded-bl-xl sm:rounded-bl-none">
+        <p class="text-xs font-semibold uppercase tracking-wide
+                  {% if settlement.snapshot_net_balance is not None and settlement.snapshot_net_balance >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+          Líquido a Pagar
+        </p>
+        <p class="mt-1 text-2xl font-black
+                  {% if settlement.snapshot_net_balance is not None and settlement.snapshot_net_balance >= 0 %}text-green-700 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+          {{ settlement.snapshot_net_balance|currency_br }}
+        </p>
+        {% if custom_overrides %}
+        <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">⚠ tem ajustes manuais</p>
+        {% endif %}
+      </div>
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Tonelagem</p>
+        <p class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+          {% if settlement.snapshot_total_production %}{{ settlement.snapshot_total_production|kg_to_tons }}{% else %}—{% endif %}
+        </p>
+        <p class="text-xs text-gray-400 mt-0.5">líquida</p>
+      </div>
+    </div>
+  </div>
+
+  {# ── Dados do favorecido (proprietário) ── #}
+  {% with prop=snap.proprietario %}
+  {% if prop and prop.name %}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Dados do Favorecido</p>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      <div>
+        <p class="text-xs text-gray-400">Nome</p>
+        <p class="font-semibold text-gray-900 dark:text-white">{{ prop.name }}</p>
+      </div>
+      {% if snap.vehicle.plate %}
+      <div>
+        <p class="text-xs text-gray-400">Veículo</p>
+        <p class="font-mono font-bold text-gray-900 dark:text-white">{{ snap.vehicle.plate }}</p>
+      </div>
+      {% endif %}
+      {% if prop.pix_key %}
+      <div class="col-span-2 bg-green-50 dark:bg-green-900/10 rounded p-2">
+        <p class="text-xs text-green-600 font-semibold">PIX ({{ prop.pix_key_type }})</p>
+        <p class="font-mono text-green-800 dark:text-green-300 font-bold">{{ prop.pix_key }}</p>
+      </div>
+      {% endif %}
+      {% if prop.bank_name %}
+      <div>
+        <p class="text-xs text-gray-400">Banco / Conta</p>
+        <p class="text-gray-900 dark:text-white">{{ prop.bank_name }} · Ag {{ prop.bank_agency }} · {{ prop.bank_account }}</p>
+      </div>
+      {% endif %}
+    </div>
+    <p class="text-xs text-gray-400 mt-2">Motorista: {{ snap.driver.name }}</p>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {# ── Romaneios ── #}
+  {% with waybills=snap.waybills %}
+  {% if waybills %}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Romaneios ({{ waybills|length }})</h2>
+      {% if can_override %}
+      <span class="text-xs text-amber-600 dark:text-amber-400">Clique em ✎ para ajustar valores</span>
+      {% endif %}
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-100 dark:border-gray-800">
+            <th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
+            <th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Data</th>
+            <th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Talhão</th>
+            <th scope="col" class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Líq. (t)</th>
+            <th scope="col" class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Valor</th>
+            {% if can_override %}<th scope="col" class="px-2 py-2"></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          {% for wb in waybills %}
+          {% with wb_id=wb.id|default:wb.number|stringformat:"s" override=custom_overrides.waybills %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 {% if override and wb_id in override %}bg-amber-50 dark:bg-amber-900/10{% endif %}">
+            <td class="px-4 py-2.5 font-mono text-xs text-gray-500">#{{ wb.number|stringformat:"05d" }}</td>
+            <td class="px-4 py-2.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">{{ wb.date }}</td>
+            <td class="px-4 py-2.5 text-gray-600 dark:text-gray-400">{{ wb.field|default:"—" }}</td>
+            <td class="px-4 py-2.5 text-right font-medium text-gray-900 dark:text-white whitespace-nowrap">
+              {{ wb.net_tons }} t
+            </td>
+            <td class="px-4 py-2.5 text-right whitespace-nowrap">
+              {% if override and wb_id in override %}
+              <span class="text-amber-600 dark:text-amber-400 font-bold">
+                R$ {{ override|dict_get:wb_id|dict_get:"custom_value"|floatformat:2 }}
+              </span>
+              <span class="line-through text-gray-400 text-xs ml-1">R$ {{ wb.total_value }}</span>
+              {% else %}
+              <span class="text-gray-600 dark:text-gray-400">R$ {{ wb.total_value }}</span>
+              {% endif %}
+            </td>
+            {% if can_override %}
+            <td class="px-2 py-2.5 text-right">
+              {% if override and wb_id in override %}
+              <button @click="removeOverride('waybills', '{{ wb_id }}')"
+                      class="text-xs text-red-400 hover:text-red-600 px-1" title="Remover ajuste">✕</button>
+              {% endif %}
+              <button @click="openOverride('waybills', '{{ wb_id }}', 'custom_value', '{{ wb.total_value }}', '')"
+                      class="text-xs text-amber-500 hover:text-amber-700 px-1" title="Editar valor">✎</button>
+            </td>
+            {% endif %}
+          </tr>
+          {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {# ── Abastecimentos ── #}
+  {% with fuelings=snap.fuelings %}
+  {% if fuelings %}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Abastecimentos — Descontos</h2>
+    </div>
+    {% for f in fuelings %}
+    {% with f_idx=forloop.counter|stringformat:"s" %}
+    <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0
+                {% if custom_overrides.fuelings and f_idx in custom_overrides.fuelings %}bg-amber-50 dark:bg-amber-900/10{% endif %}">
+      <span class="text-sm text-gray-600 dark:text-gray-400">
+        {{ f.date }} · <span class="font-mono font-bold">{{ f.vehicle|default:"—" }}</span>
+        · {{ f.liters }} L (R$ {{ f.driver_price }}/L)
+        {% if f.extras_amount %}<span class="text-xs text-gray-400">+ R$ {{ f.extras_amount }} extras</span>{% endif %}
+      </span>
+      <div class="flex items-center gap-2">
+        {% if custom_overrides.fuelings and f_idx in custom_overrides.fuelings %}
+        <span class="text-amber-600 dark:text-amber-400 font-bold text-sm">
+          − R$ {{ custom_overrides.fuelings|dict_get:f_idx|dict_get:"custom_debit"|floatformat:2 }}
+        </span>
+        <span class="line-through text-gray-400 text-xs">R$ {{ f.total }}</span>
+        {% if can_override %}
+        <button @click="removeOverride('fuelings', '{{ f_idx }}')" class="text-xs text-red-400" title="Remover">✕</button>
+        {% endif %}
+        {% else %}
+        <span class="font-medium text-red-600 dark:text-red-400 text-sm">− R$ {{ f.total }}</span>
+        {% endif %}
+        {% if can_override %}
+        <button @click="openOverride('fuelings', '{{ f_idx }}', 'custom_debit', '{{ f.total }}', '')"
+                class="text-xs text-amber-500 hover:text-amber-700" title="Editar">✎</button>
+        {% endif %}
+      </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {# ── Adiantamentos ── #}
+  {% with advances=snap.advances %}
+  {% if advances %}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Adiantamentos — Descontos</h2>
+    </div>
+    {% for a in advances %}
+    {% with a_idx=forloop.counter|stringformat:"s" %}
+    <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0
+                {% if custom_overrides.advances and a_idx in custom_overrides.advances %}bg-amber-50 dark:bg-amber-900/10{% endif %}">
+      <span class="text-sm text-gray-600 dark:text-gray-400">
+        {{ a.date }} · {{ a.method|default:"—" }}
+        {% if a.reference %}<span class="text-xs text-gray-400">· ref: {{ a.reference }}</span>{% endif %}
+      </span>
+      <div class="flex items-center gap-2">
+        {% if custom_overrides.advances and a_idx in custom_overrides.advances %}
+        <span class="text-amber-600 dark:text-amber-400 font-bold text-sm">
+          − R$ {{ custom_overrides.advances|dict_get:a_idx|dict_get:"custom_debit"|floatformat:2 }}
+        </span>
+        <span class="line-through text-gray-400 text-xs">R$ {{ a.amount }}</span>
+        {% if can_override %}
+        <button @click="removeOverride('advances', '{{ a_idx }}')" class="text-xs text-red-400" title="Remover">✕</button>
+        {% endif %}
+        {% else %}
+        <span class="font-medium text-red-600 dark:text-red-400 text-sm">− R$ {{ a.amount }}</span>
+        {% endif %}
+        {% if can_override %}
+        <button @click="openOverride('advances', '{{ a_idx }}', 'custom_debit', '{{ a.amount }}', '')"
+                class="text-xs text-amber-500 hover:text-amber-700" title="Editar">✎</button>
+        {% endif %}
+      </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {# ── Informações ── #}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-4">
+    <div class="grid grid-cols-2 gap-3 text-sm">
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wide">Criado em</p>
+        <p class="text-gray-900 dark:text-white mt-0.5">{{ settlement.created_at|date:"d/m/Y H:i" }}</p>
+      </div>
+      {% if settlement.approved_at %}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wide">Aprovado em</p>
+        <p class="text-gray-900 dark:text-white mt-0.5">{{ settlement.approved_at|date:"d/m/Y H:i" }}</p>
+      </div>
+      {% endif %}
+      {% if settlement.payment_date %}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wide">Data do pagamento</p>
+        <p class="font-semibold text-green-700 dark:text-green-400 mt-0.5">{{ settlement.payment_date|date:"d/m/Y" }}</p>
+      </div>
+      {% endif %}
+    </div>
+    {% if settlement.notes %}
+    <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Observações</p>
+      <p class="text-sm text-gray-700 dark:text-gray-300">{{ settlement.notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── Modal: Marcar como Pago ── #}
+  <div x-show="showPayModal" x-cloak
+       class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+       @keydown.escape.window="showPayModal = false">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4"
+         @click.stop>
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-gray-900 dark:text-white">Registrar Pagamento</h3>
+        <button @click="showPayModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">✕</button>
+      </div>
+
+      <form method="post" action="{% url 'finance:settlement-mark-paid' pk=settlement.pk %}"
+            enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+
+        <div>
+          <label class="label">Data do pagamento *</label>
+          <input type="date" name="payment_date" class="input" required
+                 value="{{ today|date:'Y-m-d' }}">
+        </div>
+
+        <div>
+          <label class="label">Observações</label>
+          <textarea name="payment_notes" rows="3" class="input"
+                    placeholder="Número do PIX, comprovante, negociação realizada..."></textarea>
+        </div>
+
+        <div>
+          <label class="label">Comprovante de pagamento</label>
+          <input type="file" name="payment_proof" class="input"
+                 accept="image/*,.pdf"
+                 style="padding: 0.25rem;">
+          <p class="text-xs text-gray-400 mt-1">Foto do PIX, carta de quitação, etc. (imagem ou PDF)</p>
+        </div>
+
+        <div class="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-3 text-sm">
+          <p class="text-green-700 dark:text-green-400">
+            Valor a pagar: <strong>{{ settlement.snapshot_net_balance|currency_br }}</strong>
+            {% if snap.proprietario and snap.proprietario.name %}
+            para <strong>{{ snap.proprietario.name }}</strong>
+            {% endif %}
+          </p>
+        </div>
+
+        <div class="flex gap-3">
+          <button type="submit"
+                  class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg">
+            Confirmar Pagamento
+          </button>
+          <button type="button" @click="showPayModal = false"
+                  class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ── Modal: Editar valor ── #}
+  <div x-show="overrideModal.open" x-cloak
+       class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+       @keydown.escape.window="overrideModal.open = false">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+         @click.stop>
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-gray-900 dark:text-white">Ajustar Valor</h3>
+        <button @click="overrideModal.open = false" class="text-gray-400 hover:text-gray-600">✕</button>
+      </div>
+      <div>
+        <label class="label">Novo valor (R$)</label>
+        <input type="number" x-model="overrideModal.currentValue" step="0.01" min="0"
+               class="input" placeholder="0,00">
+      </div>
+      <div>
+        <label class="label">Motivo do ajuste</label>
+        <input type="text" x-model="overrideModal.note" class="input"
+               placeholder="Ex.: carga cheia autorizada pelo patrão">
+      </div>
+      <p class="text-xs text-amber-600 dark:text-amber-400">
+        O valor original do romaneio/desconto não é alterado. Este ajuste só afeta o cálculo deste fechamento.
+      </p>
+      <div class="flex gap-3">
+        <button @click="saveOverride()"
+                class="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg">
+          Salvar Ajuste
+        </button>
+        <button @click="overrideModal.open = false"
+                class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

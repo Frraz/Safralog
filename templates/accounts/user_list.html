@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Usuários{% endblock %}
+{% block mobile_title %}Usuários{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Cabeçalho -->
+  <div class="flex items-center justify-between gap-3">
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">Usuários</h1>
+      <p class="text-sm text-slate-400 mt-0.5">Gerencie os acessos ao sistema</p>
+    </div>
+    <a href="{% url 'accounts:user_create' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold rounded-xl transition shadow-sm shadow-sky-500/20">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+      </svg>
+      Novo usuário
+    </a>
+  </div>
+
+  <!-- Busca -->
+  <form method="get" class="flex gap-2">
+    <div class="relative flex-1 max-w-sm">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input type="text" name="q" value="{{ q }}"
+        placeholder="Buscar por nome, usuário ou e-mail..."
+        class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-white text-slate-800 placeholder-slate-300
+               focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+    </div>
+    <button type="submit"
+      class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 font-medium hover:bg-slate-50 transition">
+      Buscar
+    </button>
+    {% if q %}
+    <a href="{% url 'accounts:user_list' %}"
+      class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-400 hover:text-slate-600 transition flex items-center gap-1">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+      Limpar
+    </a>
+    {% endif %}
+  </form>
+
+  <!-- Tabela -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    {% if users %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-slate-100 bg-slate-50/70">
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Usuário</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide hidden sm:table-cell">E-mail</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide hidden md:table-cell">Perfil</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide hidden lg:table-cell">Último acesso</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wide">Status</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for u in users %}
+        <tr class="hover:bg-slate-50/60 transition group">
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-indigo-400 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span class="text-xs font-bold text-white">
+                  {% if u.first_name %}{{ u.first_name|first|upper }}{% else %}{{ u.username|first|upper }}{% endif %}
+                </span>
+              </div>
+              <div class="min-w-0">
+                <p class="font-semibold text-slate-900 truncate">
+                  {% if u.get_full_name %}{{ u.get_full_name }}{% else %}{{ u.username }}{% endif %}
+                </p>
+                <p class="text-xs text-slate-400">@{{ u.username }}</p>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-slate-500 hidden sm:table-cell">
+            {{ u.email|default:"—" }}
+          </td>
+          <td class="px-4 py-3 hidden md:table-cell">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+              {% if u.is_superuser %}bg-violet-50 text-violet-700 border border-violet-200
+              {% elif u.role == 'admin' %}bg-indigo-50 text-indigo-700 border border-indigo-200
+              {% elif u.role == 'hr' %}bg-sky-50 text-sky-700 border border-sky-200
+              {% elif u.role == 'manager' %}bg-amber-50 text-amber-700 border border-amber-200
+              {% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+              {% if u.is_superuser %}Super{% else %}{{ u.get_role_display }}{% endif %}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-slate-400 text-xs hidden lg:table-cell">
+            {% if u.last_login %}{{ u.last_login|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3 text-center">
+            {% if u.is_active %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Ativo
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+              Inativo
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'accounts:user_update' u.pk %}"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition border border-transparent hover:border-sky-200 opacity-0 group-hover:opacity-100">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+              Editar
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Paginação -->
+    <div class="px-4 pb-4">
+      {% include "partials/pagination.html" with page_obj=page_obj %}
+    </div>
+
+    {% else %}
+    <div class="py-16 text-center">
+      <div class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+      </div>
+      <p class="text-sm font-semibold text-slate-600 mb-1">
+        {% if q %}Nenhum usuário encontrado{% else %}Nenhum usuário cadastrado{% endif %}
+      </p>
+      <p class="text-xs text-slate-400">
+        {% if q %}Tente outro termo de busca.{% else %}Crie o primeiro usuário para começar.{% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

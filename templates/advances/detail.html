@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Adiantamento — {{ advance.person.name }}{% endblock %}
+{% block mobile_title %}Adiantamento{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <div class="flex items-center gap-3">
+    <a href="{% url 'advances:list' %}"
+      class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">Adiantamento</h1>
+      <p class="text-sm text-slate-400 mt-0.5">{{ advance.person.name }}</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    <!-- Conteúdo principal -->
+    <div class="lg:col-span-2 space-y-5">
+
+      <!-- Dados da solicitação -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100">
+          <h2 class="text-sm font-semibold text-slate-700">Dados da solicitação</h2>
+        </div>
+        <dl class="p-5 grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Colaborador</dt>
+            <dd class="font-semibold text-slate-900">{{ advance.person.name }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Valor solicitado</dt>
+            <dd class="font-bold text-slate-900 text-base">R$ {{ advance.requested_value|floatformat:2 }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Data da solicitação</dt>
+            <dd class="text-slate-700">{{ advance.request_date|date:"d/m/Y" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Solicitado por</dt>
+            <dd class="text-slate-700">{{ advance.requested_by }}</dd>
+          </div>
+          {% if advance.reason %}
+          <div class="col-span-2">
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Motivo</dt>
+            <dd class="text-slate-700 leading-relaxed">{{ advance.reason }}</dd>
+          </div>
+          {% endif %}
+        </dl>
+      </div>
+
+      <!-- Resultado da análise -->
+      {% if advance.status != 'pending' %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100">
+          <h2 class="text-sm font-semibold text-slate-700">Resultado da análise</h2>
+        </div>
+        <dl class="p-5 grid grid-cols-2 gap-4 text-sm">
+          {% if advance.approved_value %}
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Valor aprovado</dt>
+            <dd class="font-bold text-emerald-700 text-base">R$ {{ advance.approved_value|floatformat:2 }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Desconto em</dt>
+            <dd class="text-slate-700">{{ advance.discount_reference_month|stringformat:"02d" }}/{{ advance.discount_reference_year }}</dd>
+          </div>
+          {% endif %}
+          {% if advance.rejection_reason %}
+          <div class="col-span-2">
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Motivo da rejeição</dt>
+            <dd class="text-red-600 leading-relaxed">{{ advance.rejection_reason }}</dd>
+          </div>
+          {% endif %}
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Avaliado por</dt>
+            <dd class="text-slate-700">{{ advance.reviewed_by }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Avaliado em</dt>
+            <dd class="text-slate-700">{{ advance.reviewed_at|date:"d/m/Y H:i" }}</dd>
+          </div>
+        </dl>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Painel lateral -->
+    <div class="space-y-5">
+
+      <!-- Status -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Status</p>
+        {% if advance.status == 'pending' %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>Pendente
+        </span>
+        {% elif advance.status == 'approved' %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Aprovado
+        </span>
+        {% elif advance.status == 'rejected' %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-red-50 text-red-700 border border-red-200">
+          <span class="w-2 h-2 rounded-full bg-red-500"></span>Rejeitado
+        </span>
+        {% else %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+          <span class="w-2 h-2 rounded-full bg-slate-400"></span>Descontado
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Ações de aprovação -->
+      {% if advance.status == 'pending' and request.user.is_hr %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100">
+          <h3 class="text-sm font-semibold text-slate-700">Avaliar solicitação</h3>
+        </div>
+        <div class="p-5 space-y-4">
+
+          <form method="post" action="{% url 'advances:approve' advance.pk %}" class="space-y-3">
+            {% csrf_token %}
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                Valor a aprovar (R$)
+              </label>
+              <input type="number" name="approved_value" step="0.01"
+                value="{{ advance.requested_value }}"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Mês</label>
+                <input type="number" name="discount_month" min="1" max="12"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+                  placeholder="1–12">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Ano</label>
+                <input type="number" name="discount_year"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+                  placeholder="2025">
+              </div>
+            </div>
+            <button type="submit"
+              class="w-full py-2 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl transition shadow-sm">
+              Aprovar
+            </button>
+          </form>
+
+          <div class="border-t border-slate-100 pt-4">
+            <form method="post" action="{% url 'advances:reject' advance.pk %}"
+              onsubmit="return confirm('Confirmar rejeição deste adiantamento?')">
+              {% csrf_token %}
+              <textarea name="rejection_reason" rows="2"
+                placeholder="Motivo da rejeição..."
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition resize-none mb-2"></textarea>
+              <button type="submit"
+                class="w-full py-2 text-sm font-semibold text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition">
+                Rejeitar
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

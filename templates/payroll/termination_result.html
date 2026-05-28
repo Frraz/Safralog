@@ -1,0 +1,204 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rescisão — {{ person.name }}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1e293b; background: #f1f5f9; }
+    .page { max-width: 720px; margin: 32px auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .header { background: #0f172a; color: white; padding: 20px 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header-title { font-size: 18px; font-weight: 700; }
+    .header-sub { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+    .header-badge { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: rgba(255,255,255,0.15); letter-spacing: 0.05em; text-transform: uppercase; }
+    .employee-section { background: #f8fafc; border-bottom: 2px solid #e2e8f0; padding: 16px 24px; }
+    .employee-name { font-size: 15px; font-weight: 700; color: #0f172a; }
+    .employee-meta { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 8px; font-size: 11px; color: #64748b; }
+    .employee-meta span strong { color: #334155; }
+    .alert-box { margin: 16px 24px; padding: 10px 14px; border-radius: 6px; font-size: 11px; background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; }
+    .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; padding: 10px 24px 6px; border-bottom: 1px solid #e2e8f0; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; padding: 8px 24px; text-align: left; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    th.right { text-align: right; }
+    td { padding: 8px 24px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #334155; }
+    td.right { text-align: right; }
+    td.positive { text-align: right; font-weight: 600; color: #16a34a; }
+    td.negative { text-align: right; font-weight: 600; color: #dc2626; }
+    td.memo { font-size: 10px; color: #94a3b8; }
+    .total-row td { background: #f8fafc; font-weight: 700; font-size: 13px; border-top: 2px solid #e2e8f0; }
+    .net-pay { background: #0f172a; color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .net-pay-label { font-size: 13px; font-weight: 600; }
+    .net-pay-value { font-size: 24px; font-weight: 700; }
+    .memo-section { padding: 16px 24px; background: #fafbff; border-top: 1px solid #e2e8f0; }
+    .memo-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 8px; }
+    .memo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .memo-item { font-size: 11px; color: #64748b; }
+    .memo-item strong { color: #334155; }
+    .signature { padding: 24px 24px 20px; border-top: 1px solid #e2e8f0; }
+    .signature-text { font-size: 10px; color: #94a3b8; text-align: center; margin-bottom: 32px; }
+    .signature-lines { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    .signature-line { text-align: center; }
+    .signature-line-bar { border-top: 1px solid #334155; margin-bottom: 4px; }
+    .signature-line-label { font-size: 10px; color: #64748b; }
+    .footer { padding: 10px 24px; text-align: center; font-size: 9px; color: #cbd5e1; border-top: 1px solid #f1f5f9; }
+    .print-controls { max-width: 720px; margin: 0 auto 16px; display: flex; gap: 8px; }
+    .btn-print { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; }
+    .btn-dark { background: #0f172a; color: white; }
+    .btn-dark:hover { background: #1e293b; }
+    .btn-light { background: white; color: #475569; border: 1px solid #cbd5e1; }
+    .btn-light:hover { background: #f8fafc; }
+    @media print {
+      body { background: white; }
+      .page { margin: 0; border: none; border-radius: 0; }
+      .print-controls { display: none !important; }
+      .alert-box { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-controls">
+  <a href="javascript:window.print()" class="btn-print btn-dark">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+    </svg>
+    Imprimir / Salvar PDF
+  </a>
+  <a href="{% url 'payroll:termination_form' %}" class="btn-print btn-light">Novo cálculo</a>
+  <a href="{% url 'employees:detail' person.pk %}" class="btn-print btn-light">Colaborador</a>
+</div>
+
+<div class="page">
+
+  <div class="header">
+    <div>
+      <div class="header-title">RESCISÃO DE CONTRATO</div>
+      <div class="header-sub">Cálculo estimado com base na CLT — Uso informativo</div>
+    </div>
+    <div class="header-badge">{{ result.termination_type_display }}</div>
+  </div>
+
+  <div class="employee-section">
+    <div class="employee-name">{{ person.name }}</div>
+    <div class="employee-meta">
+      <span><strong>Função:</strong> {{ person.job_role.name }}</span>
+      <span><strong>Admissão:</strong> {{ result.admission_date|date:"d/m/Y" }}</span>
+      <span><strong>Rescisão:</strong> {{ result.termination_date|date:"d/m/Y" }}</span>
+      <span><strong>Salário:</strong> R$ {{ result.salary|floatformat:2 }}</span>
+    </div>
+  </div>
+
+  <div class="alert-box">
+    Este documento é uma simulação. Os valores devem ser conferidos com contador ou advogado trabalhista antes do pagamento.
+  </div>
+
+  <div class="section-title">Verbas rescisórias</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Verba</th>
+        <th class="right">Valor (R$)</th>
+        <th class="right" style="width: 220px;">Memória de cálculo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Saldo de salário ({{ result.balance_days }} dias)</td>
+        <td class="positive">{{ result.balance_value|floatformat:2 }}</td>
+        <td class="memo">R$ {{ result.salary|floatformat:2 }} / 30 × {{ result.balance_days }} dias</td>
+      </tr>
+      {% if result.vacation_due_value %}
+      <tr>
+        <td>Férias vencidas ({{ result.memory.vacation_days_due }} dias)</td>
+        <td class="positive">{{ result.vacation_due_value|floatformat:2 }}</td>
+        <td class="memo">R$ {{ result.salary|floatformat:2 }} × {{ result.memory.vacation_days_due }} / 30</td>
+      </tr>
+      {% endif %}
+      {% if result.vacation_prop_value %}
+      <tr>
+        <td>Férias proporcionais ({{ result.memory.vacation_prop_months }}/12)</td>
+        <td class="positive">{{ result.vacation_prop_value|floatformat:2 }}</td>
+        <td class="memo">R$ {{ result.salary|floatformat:2 }} × {{ result.memory.vacation_prop_months }} / 12</td>
+      </tr>
+      {% endif %}
+      {% if result.vacation_bonus %}
+      <tr>
+        <td>1/3 sobre férias (constitucinoal)</td>
+        <td class="positive">{{ result.vacation_bonus|floatformat:2 }}</td>
+        <td class="memo">(Férias venc. + prop.) / 3</td>
+      </tr>
+      {% endif %}
+      {% if result.thirteenth_value %}
+      <tr>
+        <td>13º salário proporcional ({{ result.memory.thirteenth_months }}/12)</td>
+        <td class="positive">{{ result.thirteenth_value|floatformat:2 }}</td>
+        <td class="memo">R$ {{ result.salary|floatformat:2 }} × {{ result.memory.thirteenth_months }} / 12</td>
+      </tr>
+      {% endif %}
+      {% if result.fgts_fine %}
+      <tr>
+        <td>Multa FGTS 40% (demissão sem justa causa)</td>
+        <td class="positive">{{ result.fgts_fine|floatformat:2 }}</td>
+        <td class="memo">R$ {{ result.fgts_balance|floatformat:2 }} × 40%</td>
+      </tr>
+      {% endif %}
+      {% if result.inss_value %}
+      <tr>
+        <td>INSS (desconto)</td>
+        <td class="negative">-{{ result.inss_value|floatformat:2 }}</td>
+        <td class="memo">Tabela progressiva 2024</td>
+      </tr>
+      {% endif %}
+      <tr class="total-row">
+        <td>Total líquido a receber</td>
+        <td class="positive">{{ result.net_total|floatformat:2 }}</td>
+        <td class="memo"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="net-pay">
+    <div class="net-pay-label">TOTAL LÍQUIDO A RECEBER</div>
+    <div class="net-pay-value">R$ {{ result.net_total|floatformat:2 }}</div>
+  </div>
+
+  <div class="memo-section">
+    <div class="memo-title">Dados utilizados no cálculo</div>
+    <div class="memo-grid">
+      <div class="memo-item"><strong>Salário base:</strong> R$ {{ result.salary|floatformat:2 }}</div>
+      <div class="memo-item"><strong>Tipo de rescisão:</strong> {{ result.termination_type_display }}</div>
+      <div class="memo-item"><strong>Data de admissão:</strong> {{ result.admission_date|date:"d/m/Y" }}</div>
+      <div class="memo-item"><strong>Data de rescisão:</strong> {{ result.termination_date|date:"d/m/Y" }}</div>
+      <div class="memo-item"><strong>Saldo FGTS informado:</strong> R$ {{ result.fgts_balance|floatformat:2 }}</div>
+      <div class="memo-item"><strong>Total bruto:</strong> R$ {{ result.gross_total|floatformat:2 }}</div>
+      <div class="memo-item"><strong>INSS descontado:</strong> R$ {{ result.inss_value|floatformat:2 }}</div>
+      <div class="memo-item"><strong>Total líquido:</strong> R$ {{ result.net_total|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <div class="signature">
+    <div class="signature-text">
+      Cálculo gerado em {{ calculated_at|date:"d/m/Y" }}. Sujeito a revisão por contador responsável.
+    </div>
+    <div class="signature-lines">
+      <div class="signature-line">
+        <div class="signature-line-bar"></div>
+        <div class="signature-line-label">{{ person.name }}</div>
+      </div>
+      <div class="signature-line">
+        <div class="signature-line-bar"></div>
+        <div class="signature-line-label">{{ person.entity.name }} — Responsável</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Sistema RH &mdash; Cálculo gerado em {{ calculated_at|date:"d/m/Y" }}
+  </div>
+
+</div>
+</body>
+</html>

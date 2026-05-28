@@ -1,0 +1,127 @@
+{# templates/partials/confirm_delete.html
+   Modal de confirmação para ações destrutivas via HTMX.
+
+   Uso na view (retornar como partial quando hx-request):
+       return render(request, "partials/confirm_delete.html", {
+           "title": "Excluir colaborador",
+           "message": "Tem certeza que deseja excluir João Silva? Esta ação não pode ser desfeita.",
+           "confirm_url": reverse("employees:delete", args=[pk]),
+           "confirm_method": "post",   # padrão: post
+           "confirm_label": "Excluir", # padrão: Excluir
+           "danger": True,             # padrão: True (botão vermelho)
+           "cancel_label": "Cancelar", # padrão: Cancelar
+       })
+
+   Uso no template disparador:
+       <button
+         hx-get="{% url 'employees:confirm_delete' pk %}"
+         hx-target="#modal-container"
+         hx-swap="innerHTML">
+         Excluir
+       </button>
+       <div id="modal-container"></div>
+#}
+
+<!-- Backdrop -->
+<div
+  id="confirm-modal-backdrop"
+  onclick="closeConfirmModal()"
+  class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+  style="animation: fadeIn 0.15s ease;"
+></div>
+
+<!-- Modal -->
+<div
+  id="confirm-modal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="confirm-modal-title"
+  class="fixed inset-0 z-50 flex items-center justify-center p-4"
+  style="animation: slideUp 0.2s ease;"
+>
+  <div class="bg-white rounded-2xl shadow-2xl shadow-slate-900/20 border border-slate-200 w-full max-w-sm overflow-hidden">
+
+    <!-- Header -->
+    <div class="px-5 pt-5 pb-4">
+      <div class="flex items-start gap-4">
+        <!-- Ícone de alerta -->
+        <div class="w-10 h-10 rounded-full {% if danger != False %}bg-red-100{% else %}bg-amber-100{% endif %} flex items-center justify-center flex-shrink-0">
+          {% if danger != False %}
+          <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          {% else %}
+          <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          {% endif %}
+        </div>
+
+        <div class="flex-1 min-w-0">
+          <h3 id="confirm-modal-title" class="text-base font-bold text-slate-900">
+            {{ title|default:"Confirmar ação" }}
+          </h3>
+          <p class="text-sm text-slate-500 mt-1 leading-relaxed">
+            {{ message|default:"Tem certeza que deseja realizar esta ação?" }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="px-5 pb-5 flex items-center gap-2.5">
+      <button
+        type="button"
+        onclick="closeConfirmModal()"
+        class="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1">
+        {{ cancel_label|default:"Cancelar" }}
+      </button>
+
+      <button
+        type="button"
+        hx-{{ confirm_method|default:"post" }}="{{ confirm_url }}"
+        hx-swap="{{ swap|default:'outerHTML' }}"
+        {% if target %}hx-target="{{ target }}"{% endif %}
+        onclick="closeConfirmModal()"
+        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-offset-1
+          {% if danger != False %}
+            bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 shadow-sm shadow-red-500/20
+          {% else %}
+            bg-amber-500 hover:bg-amber-600 text-white focus:ring-amber-500
+          {% endif %}">
+        {{ confirm_label|default:"Excluir" }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+</style>
+
+<script>
+function closeConfirmModal() {
+  var backdrop = document.getElementById('confirm-modal-backdrop');
+  var modal    = document.getElementById('confirm-modal');
+  if (backdrop) backdrop.style.opacity = '0';
+  if (modal)    modal.style.opacity    = '0';
+  setTimeout(function() {
+    if (backdrop) backdrop.remove();
+    if (modal)    modal.remove();
+  }, 150);
+}
+
+// Fecha com ESC
+document.addEventListener('keydown', function handler(e) {
+  if (e.key === 'Escape') { closeConfirmModal(); document.removeEventListener('keydown', handler); }
+});
+</script>

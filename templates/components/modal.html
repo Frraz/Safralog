@@ -1,0 +1,76 @@
+{% comment %}
+Modal genérico controlado por Alpine.js.
+Uso no template pai:
+  <div x-data="{ open: false }">
+    <button @click="open = true">Abrir</button>
+    {% include "components/modal.html" with title="Título do modal" size="md" %}
+      <!-- conteúdo do modal aqui via slot -->
+    {% endinclude %}   <- não existe endinclude; use o padrão abaixo
+  </div>
+
+Uso real (o conteúdo do modal vem do template filho via bloco):
+  Inclua este arquivo e coloque o conteúdo dentro do div#modal-body
+  no template que faz o include.
+{% endcomment %}
+<div x-show="open" x-cloak style="display:none">
+
+  <!-- Backdrop -->
+  <div
+    @click="open = false"
+    class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+    x-transition:enter="transition-opacity duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition-opacity duration-150"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+  ></div>
+
+  <!-- Panel -->
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      class="bg-white rounded-2xl shadow-2xl shadow-slate-900/20 border border-slate-200 w-full
+        {% if size == 'sm' %}max-w-sm{% elif size == 'lg' %}max-w-2xl{% elif size == 'xl' %}max-w-4xl{% else %}max-w-lg{% endif %} overflow-hidden"
+      @click.stop
+      x-transition:enter="transition duration-200"
+      x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+      x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+      x-transition:leave="transition duration-150"
+      x-transition:leave-start="opacity-100 scale-100"
+      x-transition:leave-end="opacity-0 scale-95"
+    >
+
+      <!-- Header -->
+      {% if title %}
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-900">{{ title }}</h3>
+        <button @click="open = false"
+          class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      {% endif %}
+
+      <!-- Body (preenchido pelo template que usa o modal via hx-target ou inline) -->
+      <div id="modal-body" class="{{ body_padding|default:'p-5' }}">
+        {% block modal_content %}{% endblock %}
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('[x-data]').forEach(function(el) {
+        if (el.__x && el.__x.$data.open !== undefined) {
+          el.__x.$data.open = false;
+        }
+      });
+    }
+  });
+</script>

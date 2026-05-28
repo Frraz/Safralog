@@ -1,0 +1,53 @@
+{% load core_tags %}
+
+{# BUG #5 — C11 CORRIGIDO: guards em driver e vehicle antes de acessar atributos e gerar URLs #}
+<tr id="waybill-row-{{ waybill.pk }}"
+    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+
+  <td class="px-4 py-3 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">
+    #{{ waybill.number|stringformat:"05d" }}
+  </td>
+
+  <td class="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+    {{ waybill.operation_date|date:"d/m/Y" }}
+  </td>
+
+  <td class="px-4 py-3">
+    {% if waybill.driver %}
+    <a href="{% url 'logistics:driver-detail' pk=waybill.driver.pk %}"
+       class="font-medium text-gray-900 dark:text-white hover:text-green-600 transition-colors">
+      {{ waybill.driver.name }}
+    </a>
+    {% else %}
+    <span class="text-gray-400">—</span>
+    {% endif %}
+  </td>
+
+  <td class="px-4 py-3 text-gray-600 dark:text-gray-400 font-mono text-xs">
+    {{ waybill.vehicle.plate|default:"—" }}
+  </td>
+
+  <td class="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">
+    {{ waybill.field.name|default:"—" }}
+  </td>
+
+  <td class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white whitespace-nowrap">
+    {{ waybill.net_weight_tons|floatformat:3 }} t
+  </td>
+
+  <td class="px-4 py-3 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
+    {{ waybill.total_value|currency_br }}
+  </td>
+
+  <td class="px-4 py-3 text-center">
+    {% waybill_status_badge waybill.status %}
+  </td>
+
+  <td class="px-4 py-3 text-right">
+    <a href="{% url 'operations:waybill-detail' pk=waybill.pk %}"
+       class="text-xs text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors font-medium">
+      Ver →
+    </a>
+  </td>
+
+</tr>

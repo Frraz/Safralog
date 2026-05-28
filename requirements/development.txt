@@ -1,0 +1,23 @@
+-r base.txt
+
+# ── Debug / Dev ────────────────────────────────────────────
+django-debug-toolbar==4.4.6
+django-querycount==0.8.3
+ipython==8.30.0
+ipdb==0.13.13
+
+# ── Testes ─────────────────────────────────────────────────
+pytest==8.3.4
+pytest-django==4.9.0
+pytest-cov==6.0.0
+pytest-xdist==3.6.1
+factory-boy==3.3.1
+faker==33.1.0
+model-bakery==1.20.0
+time-machine==2.16.0
+
+# ── Qualidade de código ─────────────────────────────────────
+ruff==0.8.4
+mypy==1.13.0
+django-stubs==5.1.1
+pre-commit==4.0.1

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == "create" %}Nova Região{% else %}Editar {{ region.name }}{% endif %}{% endblock %}
+{% block nav_title %}{% if action == "create" %}Nova Região de Origem{% else %}Editar Região{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 space-y-4">
+
+      <div>
+        <label class="label">Nome da região *</label>
+        {{ form.name }}
+        <p class="text-xs text-gray-400 mt-1">Ex.: Miguel Baiano, Rio Duro, Fazenda Nova...</p>
+        {% if form.name.errors %}<p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+      </div>
+
+      <div>
+        <label class="label">Valor padrão por tonelada (R$) *</label>
+        {{ form.default_price_per_ton }}
+        <p class="text-xs text-gray-400 mt-1">Este valor será pré-preenchido automaticamente ao criar romaneios com talhões desta região.</p>
+        {% if form.default_price_per_ton.errors %}<p class="text-xs text-red-500 mt-1">{{ form.default_price_per_ton.errors.0 }}</p>{% endif %}
+      </div>
+
+      <div>
+        <label class="label">Descrição / Referência</label>
+        {{ form.description }}
+      </div>
+
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit"
+              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+        {% if action == "create" %}Cadastrar Região{% else %}Salvar{% endif %}
+      </button>
+      <a href="{% url 'operations:region-list' %}"
+         class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 transition-colors">
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

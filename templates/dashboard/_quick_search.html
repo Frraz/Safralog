@@ -1,0 +1,163 @@
+{# SafraLog — templates/dashboard/_quick_search.html
+   Partial renderizado via HTMX no #search-results da command palette.
+   Recebe: query, waybills, drivers, vehicles, has_results
+#}
+
+{% load static %}
+
+{% if not query %}
+{# Estado inicial — query vazia, mostra nada #}
+<div></div>
+
+{% elif not has_results %}
+{# Nenhum resultado encontrado #}
+<div class="px-4 py-6 text-center">
+  <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
+    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    </svg>
+  </div>
+  <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+    Nenhum resultado para <span class="font-bold text-gray-700 dark:text-gray-300">"{{ query }}"</span>
+  </p>
+  <p class="text-xs text-gray-400 dark:text-gray-600 mt-1">
+    Tente buscar por nome, placa ou número do romaneio
+  </p>
+</div>
+
+{% else %}
+{# Resultados encontrados #}
+<div class="divide-y divide-gray-100 dark:divide-gray-800/60">
+
+  {# ── Romaneios ── #}
+  {% if waybills %}
+  <div class="p-2">
+    <p class="px-3 pt-1 pb-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-600">
+      Romaneios
+    </p>
+    <div class="space-y-0.5">
+      {% for w in waybills %}
+      <a href="{% url 'operations:waybill-detail' w.pk %}"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl
+                hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors group">
+        <div class="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/50
+                    group-hover:bg-green-500 flex items-center justify-center
+                    shrink-0 transition-colors">
+          <svg class="w-3.5 h-3.5 text-green-600 dark:text-green-400 group-hover:text-white transition-colors"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                     a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              #{{ w.number|stringformat:"05d" }}
+            </p>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold
+              {% if w.status == 'confirmed' %}bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400
+              {% elif w.status == 'settled' %}bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400
+              {% elif w.status == 'cancelled' %}bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400
+              {% else %}bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400{% endif %}">
+              {{ w.get_status_display }}
+            </span>
+          </div>
+          <p class="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+            {{ w.driver.name }}
+            {% if w.vehicle %} · {{ w.vehicle.plate }}{% endif %}
+            {% if w.field %} · {{ w.field.name }}{% endif %}
+            · {{ w.operation_date|date:"d/m/Y" }}
+          </p>
+        </div>
+        <div class="shrink-0 text-right">
+          <p class="text-sm font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+            {{ w.net_weight_tons|floatformat:2 }} t
+          </p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Motoristas ── #}
+  {% if drivers %}
+  <div class="p-2">
+    <p class="px-3 pt-2 pb-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-600">
+      Motoristas
+    </p>
+    <div class="space-y-0.5">
+      {% for d in drivers %}
+      <a href="{% url 'logistics:driver-detail' d.pk %}"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl
+                hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors group">
+        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50
+                    flex items-center justify-center shrink-0">
+          <span class="text-[11px] font-bold text-blue-600 dark:text-blue-400">
+            {{ d.name|slice:":2"|upper }}
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+            {{ d.name }}
+          </p>
+          <p class="text-[11px] text-gray-400 dark:text-gray-500">
+            {% if d.status == 'active' %}
+            <span class="text-green-500 font-medium">Ativo</span>
+            {% else %}
+            <span class="text-gray-400">Inativo</span>
+            {% endif %}
+            {% if d.cnh_category %} · CNH {{ d.cnh_category }}{% endif %}
+          </p>
+        </div>
+        <svg class="w-4 h-4 text-gray-300 dark:text-gray-700 group-hover:text-gray-500 transition-colors shrink-0"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Veículos ── #}
+  {% if vehicles %}
+  <div class="p-2">
+    <p class="px-3 pt-2 pb-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-600">
+      Veículos
+    </p>
+    <div class="space-y-0.5">
+      {% for v in vehicles %}
+      <a href="{% url 'logistics:vehicle-detail' v.pk %}"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl
+                hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors group">
+        <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800
+                    flex items-center justify-center shrink-0">
+          <svg class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold font-mono text-gray-800 dark:text-gray-200">
+            {{ v.plate }}
+          </p>
+          <p class="text-[11px] text-gray-400 dark:text-gray-500">
+            {{ v.brand }} {{ v.model }}
+            {% if v.payload_kg %} · {{ v.payload_kg|floatformat:0 }} kg{% endif %}
+          </p>
+        </div>
+        <svg class="w-4 h-4 text-gray-300 dark:text-gray-700 group-hover:text-gray-500 transition-colors shrink-0"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}

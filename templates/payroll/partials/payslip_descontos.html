@@ -1,0 +1,35 @@
+{% comment %}
+Partial para a seção de descontos do holerite.
+Contexto esperado: descontos (lista de items com codigo, descricao, referencia, valor)
+Uso: {% include "payroll/partials/payslip_descontos.html" with descontos=descontos %}
+{% endcomment %}
+{% if descontos %}
+<table class="w-full text-sm">
+  <thead>
+    <tr class="border-b border-slate-100 bg-slate-50">
+      <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide w-16">Cód.</th>
+      <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Descrição</th>
+      <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide w-24 hidden sm:table-cell">Referência</th>
+      <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide w-28">Valor (R$)</th>
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-slate-50">
+    {% for item in descontos %}
+    <tr>
+      <td class="px-4 py-2.5 text-xs font-mono text-slate-400">{{ item.codigo }}</td>
+      <td class="px-4 py-2.5 text-slate-700">{{ item.descricao }}</td>
+      <td class="px-4 py-2.5 text-right text-xs text-slate-400 hidden sm:table-cell">
+        {% if item.referencia %}{{ item.referencia }}{% endif %}
+      </td>
+      <td class="px-4 py-2.5 text-right font-semibold text-red-600">{{ item.valor|floatformat:2 }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot class="border-t border-slate-200 bg-slate-50">
+    <tr>
+      <td colspan="3" class="px-4 py-2.5 text-xs font-bold text-slate-600 text-right">Total Descontos</td>
+      <td class="px-4 py-2.5 text-right font-bold text-red-600">{{ total_descontos|floatformat:2 }}</td>
+    </tr>
+  </tfoot>
+</table>
+{% endif %}

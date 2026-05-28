@@ -1,0 +1,24 @@
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Total Colaboradores</p>
+    <p class="text-2xl font-bold text-slate-900 mt-1">{{ summary.total_funcionarios|default:0 }}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Total Proventos</p>
+    <p class="text-2xl font-bold text-emerald-600 mt-1">
+      R$ {{ summary.total_proventos|floatformat:2 }}
+    </p>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Total Descontos</p>
+    <p class="text-2xl font-bold text-red-500 mt-1">
+      R$ {{ summary.total_descontos|floatformat:2 }}
+    </p>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Total Líquido</p>
+    <p class="text-2xl font-bold text-sky-600 mt-1">
+      R$ {{ summary.total_liquido|floatformat:2 }}
+    </p>
+  </div>
+</div>

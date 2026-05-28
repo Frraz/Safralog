@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}Adiantamentos{% endblock %}
+{% block nav_title %}Adiantamentos{% endblock %}
+
+{% block quick_action %}
+<a href="{% url 'finance:advance-create' %}"
+   class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+          bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+  {# MELHORIA #1 — aria-hidden no SVG decorativo #}
+  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+  Novo
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# BUG #2 FIX — x-data no container para padrão Alpine nos botões Cancelar #}
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800"
+     x-data>
+  {% for advance in advances %}
+  <div class="flex items-center gap-4 px-4 py-3">
+
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        {# BUG #1 FIX — guard driver antes de acessar .name #}
+        <p class="text-sm font-semibold text-gray-900 dark:text-white">
+          {% if advance.driver %}{{ advance.driver.name }}{% else %}—{% endif %}
+        </p>
+        {% advance_status_badge advance.status %}
+      </div>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+        {{ advance.payment_date|date:"d/m/Y" }}
+        · {{ advance.get_payment_method_display }}
+        {% if advance.harvest %} · {{ advance.harvest.name }}{% endif %}
+        {% if advance.reference_code %} · {{ advance.reference_code }}{% endif %}
+      </p>
+    </div>
+
+    <div class="shrink-0 text-right">
+      <p class="text-sm font-bold text-red-600 dark:text-red-400">
+        − {{ advance.amount|currency_br }}
+      </p>
+    </div>
+
+    {% if advance.status == "pending" %}
+    {# BUG #2 FIX — onclick inline substituído por padrão Alpine #}
+    <form method="post"
+          action="{% url 'finance:advance-cancel' pk=advance.pk %}"
+          x-ref="formCancelar{{ advance.pk }}">
+      {% csrf_token %}
+      <button type="button"
+              @click="if (confirm('Cancelar este adiantamento?')) $refs['formCancelar{{ advance.pk }}'].submit()"
+              class="shrink-0 px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400
+                     border border-red-200 dark:border-red-800 rounded-lg
+                     hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+        Cancelar
+      </button>
+    </form>
+    {% endif %}
+
+  </div>
+  {% empty %}
+  <div class="px-4 py-12 text-center">
+    <p class="text-sm text-gray-400">Nenhum adiantamento registrado.</p>
+    <a href="{% url 'finance:advance-create' %}"
+       class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+              bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+      Registrar adiantamento
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

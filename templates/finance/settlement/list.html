@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}Fechamentos{% endblock %}
+{% block nav_title %}Fechamentos{% endblock %}
+
+{% block quick_action %}
+<a href="{% url 'finance:settlement-create' %}"
+   class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+          bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+  Novo Fechamento
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+  {% for settlement in settlements %}
+  <a href="{% url 'finance:settlement-detail' pk=settlement.pk %}"
+     class="flex items-center gap-4 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+
+    <div class="shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30
+                flex items-center justify-center text-green-700 dark:text-green-400 font-bold text-sm">
+      {# BUG #1 FIX — guard account antes de acessar .name #}
+      {% if settlement.account %}{{ settlement.account.name|first|upper }}{% else %}?{% endif %}
+    </div>
+
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+          {# BUG #1 FIX — guard account #}
+          {% if settlement.account %}{{ settlement.account.name }}{% else %}—{% endif %}
+        </p>
+        {% settlement_status_badge settlement.status %}
+      </div>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+        {{ settlement.period_start|date:"d/m/Y" }} → {{ settlement.period_end|date:"d/m/Y" }}
+        · {{ settlement.snapshot_waybill_count|default:"—" }} romaneios
+      </p>
+    </div>
+
+    <div class="shrink-0 text-right">
+      {% if settlement.snapshot_net_balance is not None %}
+      <p class="text-sm font-bold
+                {% if settlement.snapshot_net_balance >= 0 %}text-green-600 dark:text-green-400
+                {% else %}text-red-600 dark:text-red-400{% endif %}">
+        {{ settlement.snapshot_net_balance|currency_br }}
+      </p>
+      <p class="text-xs text-gray-400">líquido</p>
+      {% endif %}
+    </div>
+
+    {# MELHORIA #1 — aria-hidden no SVG decorativo #}
+    <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+  </a>
+  {% empty %}
+  <div class="px-4 py-12 text-center">
+    <p class="text-sm text-gray-400">Nenhum fechamento encontrado.</p>
+    <a href="{% url 'finance:settlement-create' %}"
+       class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+              bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+      Criar primeiro fechamento
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

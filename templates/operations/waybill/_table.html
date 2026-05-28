@@ -1,0 +1,139 @@
+{% load core_tags %}
+
+{# BUG #6 — C11 CORRIGIDO: guards em driver e vehicle nas seções desktop e mobile   #}
+{# MELHORIA #4 — C9 CORRIGIDO: scope="col" adicionado a todos os <th>              #}
+
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+
+  {# Summary #}
+  {% if page_obj.paginator.count > 0 %}
+  <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+    <p class="text-xs text-gray-500 dark:text-gray-400">
+      <span class="font-semibold text-gray-700 dark:text-gray-300">{{ page_obj.paginator.count }}</span>
+      romaneio{{ page_obj.paginator.count|pluralize }}
+    </p>
+  </div>
+  {% endif %}
+
+  {# Desktop table #}
+  <div class="hidden md:block overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100 dark:border-gray-800">
+          <th scope="col" class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">#</th>
+          <th scope="col" class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Data</th>
+          <th scope="col" class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Motorista</th>
+          <th scope="col" class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Veículo</th>
+          <th scope="col" class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Talhão</th>
+          <th scope="col" class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Líquido</th>
+          <th scope="col" class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Valor</th>
+          <th scope="col" class="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</th>
+          <th scope="col" class="px-4 py-2.5"><span class="sr-only">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% for wb in page_obj %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+
+          <td class="px-4 py-3 font-mono text-xs font-semibold text-gray-500 dark:text-gray-400">
+            #{{ wb.number|stringformat:"05d" }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+            {{ wb.operation_date|date:"d/m/Y" }}
+          </td>
+
+          <td class="px-4 py-3">
+            {% if wb.driver %}
+            <a href="{% url 'logistics:driver-detail' pk=wb.driver.pk %}"
+               class="font-medium text-gray-900 dark:text-white hover:text-green-600 dark:hover:text-green-400 transition-colors">
+              {{ wb.driver.name }}
+            </a>
+            {% else %}
+            <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+
+          <td class="px-4 py-3 text-gray-600 dark:text-gray-400 font-mono text-xs">
+            {{ wb.vehicle.plate|default:"—" }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">
+            {{ wb.field.name|default:"—" }}
+          </td>
+
+          <td class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white whitespace-nowrap">
+            {{ wb.net_weight_tons|floatformat:3 }} t
+          </td>
+
+          <td class="px-4 py-3 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
+            {{ wb.total_value|currency_br }}
+          </td>
+
+          <td class="px-4 py-3 text-center">
+            {% waybill_status_badge wb.status %}
+          </td>
+
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'operations:waybill-detail' pk=wb.pk %}"
+               class="text-xs text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors font-medium">
+              Ver →
+            </a>
+          </td>
+
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="px-4 py-12 text-center text-sm text-gray-400">
+            Nenhum romaneio encontrado.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Mobile cards #}
+  <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
+    {% for wb in page_obj %}
+    <a href="{% url 'operations:waybill-detail' pk=wb.pk %}"
+       class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+
+      <div class="shrink-0 w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+        <span class="text-xs font-bold text-gray-600 dark:text-gray-400">#{{ wb.number }}</span>
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          {# C11: guard no driver no mobile também #}
+          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+            {{ wb.driver.name|default:"—" }}
+          </p>
+          {% waybill_status_badge wb.status %}
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {{ wb.vehicle.plate|default:"—" }} · {{ wb.operation_date|date:"d/m" }} · {{ wb.field.name|default:"—" }}
+        </p>
+      </div>
+
+      <div class="shrink-0 text-right">
+        <p class="text-sm font-bold text-gray-900 dark:text-white">{{ wb.net_weight_tons|floatformat:2 }} t</p>
+        <p class="text-xs text-gray-500">{{ wb.total_value|currency_br }}</p>
+      </div>
+
+    </a>
+    {% empty %}
+    <div class="px-4 py-12 text-center text-sm text-gray-400">
+      Nenhum romaneio encontrado.
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Paginação #}
+  {% if page_obj.has_other_pages %}
+  <div class="border-t border-gray-100 dark:border-gray-800 px-4 py-3">
+    {% render_pagination page_obj %}
+  </div>
+  {% endif %}
+
+</div>

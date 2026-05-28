@@ -1,0 +1,12 @@
+-r base.txt
+
+# Servidor
+gunicorn==23.0.0
+uvicorn[standard]==0.32.1
+
+# Monitoramento
+sentry-sdk[django]==2.19.2
+flower==2.0.1
+
+# Performance
+django-cachalot==2.6.3

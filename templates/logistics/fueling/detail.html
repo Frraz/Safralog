@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}Abastecimento{% endblock %}
+{% block nav_title %}Abastecimento{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto space-y-4">
+
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+
+    <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-800">
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Litros</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+          {{ fueling.liters|floatformat:2 }}
+          <span class="text-sm font-normal text-gray-500">L</span>
+        </p>
+      </div>
+      <div class="px-4 py-4 text-center bg-red-50 dark:bg-red-900/10 rounded-tr-xl">
+        <p class="text-xs font-semibold text-red-600 dark:text-red-400">Total</p>
+        <p class="mt-1 text-2xl font-bold text-red-700 dark:text-red-400">
+          {{ fueling.total_value|currency_br }}
+        </p>
+        <p class="text-xs text-red-500 mt-0.5">R$ {{ fueling.driver_price_per_liter|floatformat:3 }}/L (motorista){% if fueling.posted_price_per_liter %} · posto: R$ {{ fueling.posted_price_per_liter|floatformat:3 }}/L{% endif %}</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-0 divide-y divide-gray-100 dark:divide-gray-800">
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Data</span>
+        <span class="text-sm text-gray-900 dark:text-white">{{ fueling.fueling_date|date:"d/m/Y" }}</span>
+      </div>
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Veículo</span>
+        <a href="{% url 'logistics:vehicle-detail' pk=fueling.vehicle.pk %}"
+           class="text-sm font-mono text-gray-900 dark:text-white hover:text-green-600 transition-colors">
+          {{ fueling.vehicle.plate }}
+        </a>
+      </div>
+      {% if fueling.driver %}
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Motorista</span>
+        <a href="{% url 'logistics:driver-detail' pk=fueling.driver.pk %}"
+           class="text-sm text-gray-900 dark:text-white hover:text-green-600 transition-colors font-medium">
+          {{ fueling.driver.name }}
+        </a>
+      </div>
+      {% endif %}
+      {% if fueling.fuel_type %}
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Combustível</span>
+        <span class="text-sm text-gray-900 dark:text-white">{{ fueling.get_fuel_type_display }}</span>
+      </div>
+      {% endif %}
+      {% if fueling.odometer %}
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Odômetro</span>
+        <span class="text-sm text-gray-900 dark:text-white">{{ fueling.odometer }} km</span>
+      </div>
+      {% endif %}
+      {% if fueling.notes %}
+      <div class="col-span-2 px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 mt-0.5">Notas</span>
+        <span class="text-sm text-gray-700 dark:text-gray-300">{{ fueling.notes }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <a href="{% url 'logistics:fueling-list' %}"
+       class="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 transition-colors">
+      ← Voltar
+    </a>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block mobile_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto space-y-5">
+
+  <!-- Cabeçalho -->
+  <div class="flex items-center gap-3">
+    <a href="{% url 'accounts:user_list' %}"
+      class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">{{ title }}</h1>
+      <p class="text-sm text-slate-400 mt-0.5">
+        {% if object %}Edite os dados do usuário{% else %}Preencha os dados do novo usuário{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Formulário -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <form method="post" class="divide-y divide-slate-100">
+      {% csrf_token %}
+
+      <div class="p-5 space-y-4">
+
+        <!-- Erros gerais -->
+        {% if form.non_field_errors %}
+        <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+          {% for error in form.non_field_errors %}
+          <p class="text-sm text-red-700">{{ error }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Nome -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Primeiro nome
+            </label>
+            <input type="text" name="first_name"
+              value="{{ form.first_name.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800
+                {% if form.first_name.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %}
+                focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="João">
+            {% if form.first_name.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.first_name.errors.0 }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Sobrenome
+            </label>
+            <input type="text" name="last_name"
+              value="{{ form.last_name.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800
+                {% if form.last_name.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %}
+                focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="Silva">
+            {% if form.last_name.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.last_name.errors.0 }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Usuário -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Nome de usuário <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="username"
+            value="{{ form.username.value|default:'' }}"
+            class="w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800
+              {% if form.username.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %}
+              focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+            placeholder="usuario.nome"
+            autocomplete="username">
+          {% if form.username.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.username.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- E-mail -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            E-mail
+          </label>
+          <input type="email" name="email"
+            value="{{ form.email.value|default:'' }}"
+            class="w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800
+              {% if form.email.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %}
+              focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+            placeholder="usuario@empresa.com.br">
+          {% if form.email.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.email.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Perfil -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Perfil de acesso <span class="text-red-500">*</span>
+          </label>
+          <select name="role"
+            class="w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800
+              {% if form.role.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %}
+              focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition bg-white">
+            {% for value, label in form.role.field.choices %}
+            <option value="{{ value }}" {% if form.role.value == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+          {% if form.role.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.role.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Senha (apenas criação) -->
+        {% if not object %}
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Senha <span class="text-red-500">*</span>
+          </label>
+          <input type="password" name="password1"
+            class="w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800
+              {% if form.password1.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %}
+              focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+            placeholder="Mínimo 8 caracteres"
+            autocomplete="new-password">
+          {% if form.password1.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.password1.errors.0 }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Confirmar senha <span class="text-red-500">*</span>
+          </label>
+          <input type="password" name="password2"
+            class="w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800
+              {% if form.password2.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %}
+              focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+            placeholder="Repita a senha"
+            autocomplete="new-password">
+          {% if form.password2.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.password2.errors.0 }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Ativo -->
+        {% if object %}
+        <div class="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
+          <div>
+            <p class="text-sm font-medium text-slate-700">Usuário ativo</p>
+            <p class="text-xs text-slate-400">Desativar impede o login no sistema</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="is_active" value="1"
+              {% if form.is_active.value %}checked{% endif %}
+              class="sr-only peer">
+            <div class="w-10 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer
+                        peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:bg-sky-500
+                        after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white
+                        after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+          </label>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Ações -->
+      <div class="px-5 py-4 bg-slate-50/50 flex items-center justify-between gap-3">
+        <a href="{% url 'accounts:user_list' %}"
+          class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition">
+          Cancelar
+        </a>
+        <button type="submit"
+          class="px-5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold rounded-xl transition shadow-sm shadow-sky-500/20
+                 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+          {% if object %}Salvar alterações{% else %}Criar usuário{% endif %}
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+{% endblock %}

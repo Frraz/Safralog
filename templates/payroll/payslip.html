@@ -1,0 +1,477 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Holerite — {{ employee.name }} — {{ competencia }}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #1e293b;
+      background: #f1f5f9;
+    }
+
+    /* ── Controles de impressão (somente tela) ── */
+    .print-controls {
+      max-width: 740px;
+      margin: 24px auto 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer; border: none; text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: #0284c7; color: #fff; }
+    .btn-primary:hover { background: #0369a1; }
+    .btn-secondary { background: #fff; color: #475569; border: 1px solid #cbd5e1; }
+    .btn-secondary:hover { background: #f8fafc; }
+
+    /* ── Página do holerite ── */
+    .page {
+      max-width: 740px;
+      margin: 0 auto 40px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    /* ── Cabeçalho ── */
+    .header {
+      background: #0284c7;
+      color: #fff;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .header-title { font-size: 17px; font-weight: 700; letter-spacing: 0.02em; }
+    .header-sub { font-size: 11px; opacity: 0.85; margin-top: 3px; }
+    .header-right { text-align: right; }
+    .header-right-label { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.06em; }
+    .header-period { font-size: 15px; font-weight: 700; margin-top: 2px; }
+
+    /* ── Dados do colaborador ── */
+    .employee-section {
+      background: #f8fafc;
+      border-bottom: 2px solid #e2e8f0;
+      padding: 14px 24px;
+    }
+    .employee-name { font-size: 14px; font-weight: 700; color: #0f172a; }
+    .employee-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px 24px;
+      margin-top: 10px;
+    }
+    .employee-field { font-size: 10.5px; color: #64748b; }
+    .employee-field strong { display: block; color: #334155; font-weight: 600; font-size: 11px; margin-bottom: 1px; }
+
+    /* ── Seções de lançamentos ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 24px 6px;
+      border-bottom: 1px solid #e2e8f0;
+      border-top: 2px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .section-header:first-of-type { border-top: none; }
+    .section-dot {
+      width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+    }
+    .dot-green { background: #16a34a; }
+    .dot-red { background: #dc2626; }
+    .dot-gray { background: #94a3b8; }
+    .section-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: #475569;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-size: 9.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: #94a3b8;
+      padding: 6px 24px;
+      text-align: left;
+      background: #fafafa;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    th.right, td.right { text-align: right; }
+    td {
+      padding: 6px 24px;
+      border-bottom: 1px solid #f8fafc;
+      font-size: 11.5px;
+      color: #334155;
+    }
+    td.code {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: #94a3b8;
+      width: 60px;
+    }
+    td.ref {
+      width: 80px;
+      text-align: right;
+      color: #64748b;
+      font-size: 10.5px;
+    }
+    td.value-positive { color: #16a34a; font-weight: 600; text-align: right; width: 100px; }
+    td.value-negative { color: #dc2626; font-weight: 600; text-align: right; width: 100px; }
+    td.value-neutral  { color: #64748b; font-weight: 500; text-align: right; width: 100px; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Totais ── */
+    .totals {
+      padding: 14px 24px;
+      border-top: 2px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+      text-align: center;
+    }
+    .totals-grid .item + .item {
+      border-left: 1px solid #e2e8f0;
+    }
+    .total-label {
+      font-size: 9.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: #64748b;
+    }
+    .total-value {
+      font-size: 15px; font-weight: 700; margin-top: 3px;
+    }
+    .total-value.green { color: #16a34a; }
+    .total-value.red   { color: #dc2626; }
+    .total-value.blue  { color: #0284c7; }
+
+    /* ── Líquido destacado ── */
+    .net-pay {
+      background: #0284c7;
+      color: #fff;
+      padding: 13px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .net-pay-label { font-size: 12px; font-weight: 600; opacity: 0.9; }
+    .net-pay-value { font-size: 22px; font-weight: 800; }
+
+    /* ── Bases de incidência ── */
+    .bases {
+      padding: 10px 24px;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .base-item { font-size: 10px; color: #94a3b8; }
+    .base-item strong { color: #475569; font-weight: 600; }
+
+    /* ── Encargos patronais ── */
+    .encargos {
+      padding: 8px 24px;
+      border-top: 1px solid #f1f5f9;
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .encargo-item { display: inline; }
+    .encargo-item + .encargo-item::before { content: '  ·  '; }
+    .encargo-item strong { color: #475569; }
+
+    /* ── Assinatura ── */
+    .signature {
+      padding: 20px 24px 16px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .signature-text {
+      font-size: 9.5px; color: #94a3b8;
+      text-align: center; margin-bottom: 28px; line-height: 1.5;
+    }
+    .signature-lines {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+    }
+    .sig-line { text-align: center; }
+    .sig-line-bar { border-top: 1px solid #334155; margin-bottom: 5px; }
+    .sig-line-label { font-size: 10px; color: #64748b; }
+
+    /* ── Rodapé ── */
+    .footer {
+      padding: 8px 24px;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-text { font-size: 9px; color: #cbd5e1; }
+    .footer-hash { font-size: 8px; font-family: 'Courier New', monospace; color: #e2e8f0; }
+
+    /* ── Fechado badge ── */
+    .closed-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #dcfce7; color: #15803d;
+      border: 1px solid #bbf7d0;
+      padding: 2px 8px; border-radius: 99px;
+      font-size: 9.5px; font-weight: 600;
+      margin-left: 8px;
+    }
+
+    /* ── Sem dados ── */
+    .empty-row td { color: #cbd5e1; font-style: italic; text-align: center; padding: 12px 24px; }
+
+    /* ── Print ── */
+    @media print {
+      body { background: #fff; font-size: 11px; }
+      .page { margin: 0; border: none; border-radius: 0; box-shadow: none; }
+      .print-controls { display: none !important; }
+      .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .net-pay { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Controles (somente tela) ── -->
+<div class="print-controls">
+  <button onclick="window.print()" class="btn btn-primary">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+    </svg>
+    Imprimir / Salvar PDF
+  </button>
+  <a href="{% url 'payroll:payroll_detail' payroll.id %}" class="btn btn-secondary">
+    ← Voltar
+  </a>
+  {% if is_fechada %}
+    <span class="closed-badge">
+      <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+      </svg>
+      Folha Fechada
+    </span>
+  {% endif %}
+</div>
+
+<!-- ── Holerite ── -->
+<div class="page">
+
+  <!-- Cabeçalho -->
+  <div class="header">
+    <div>
+      <div class="header-title">RECIBO DE PAGAMENTO</div>
+      <div class="header-sub">
+        {{ entity.name }}{% if employee.farm %} &mdash; {{ employee.farm.name }}{% endif %}
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-right-label">Competência</div>
+      <div class="header-period">{{ competencia|upper }}</div>
+    </div>
+  </div>
+
+  <!-- Dados do colaborador -->
+  <div class="employee-section">
+    <div class="employee-name">{{ employee.name }}</div>
+    <div class="employee-grid">
+      <div class="employee-field">
+        <strong>Função</strong>
+        {{ employee.job_role.name|default:"—" }}
+      </div>
+      <div class="employee-field">
+        <strong>Admissão</strong>
+        {{ employee.admission_date|date:"d/m/Y"|default:"—" }}
+      </div>
+      <div class="employee-field">
+        <strong>Tipo de Vínculo</strong>
+        {{ payroll.vinculo_trabalhista|default:"—" }}
+      </div>
+      {% if employee.cpf %}
+      <div class="employee-field">
+        <strong>CPF</strong>
+        {{ employee.cpf }}
+      </div>
+      {% endif %}
+      {% if employee.pis %}
+      <div class="employee-field">
+        <strong>PIS / NIT</strong>
+        {{ employee.pis }}
+      </div>
+      {% endif %}
+      <div class="employee-field">
+        <strong>Dias Trabalhados</strong>
+        {{ payroll.dias_trabalhados|default:"30" }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Proventos ── -->
+  <div class="section-header">
+    <span class="section-dot dot-green"></span>
+    <span class="section-label">Proventos</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:60px">Cód.</th>
+        <th>Descrição</th>
+        <th class="right" style="width:90px">Referência</th>
+        <th class="right" style="width:110px">Valor (R$)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in proventos %}
+      <tr>
+        <td class="code">{{ item.codigo }}</td>
+        <td>{{ item.descricao }}</td>
+        <td class="ref">
+          {% if item.referencia %}{{ item.referencia }}{% endif %}
+        </td>
+        <td class="value-positive">{{ item.valor|floatformat:2 }}</td>
+      </tr>
+      {% empty %}
+      <tr class="empty-row"><td colspan="4">Nenhum provento lançado</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- ── Descontos ── -->
+  {% if descontos %}
+  <div class="section-header">
+    <span class="section-dot dot-red"></span>
+    <span class="section-label">Descontos</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:60px">Cód.</th>
+        <th>Descrição</th>
+        <th class="right" style="width:90px">Referência</th>
+        <th class="right" style="width:110px">Valor (R$)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in descontos %}
+      <tr>
+        <td class="code">{{ item.codigo }}</td>
+        <td>{{ item.descricao }}</td>
+        <td class="ref">
+          {% if item.referencia %}{{ item.referencia }}{% endif %}
+        </td>
+        <td class="value-negative">{{ item.valor|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ── Informativos ── -->
+  {% if informativos %}
+  <div class="section-header">
+    <span class="section-dot dot-gray"></span>
+    <span class="section-label">Informativos</span>
+  </div>
+  <table>
+    <tbody>
+      {% for item in informativos %}
+      <tr>
+        <td class="code">{{ item.codigo }}</td>
+        <td>{{ item.descricao }}</td>
+        <td class="ref"></td>
+        <td class="value-neutral">{{ item.valor|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ── Totalizadores ── -->
+  <div class="totals">
+    <div class="totals-grid">
+      <div class="item" style="padding-right: 16px;">
+        <div class="total-label">Total Proventos</div>
+        <div class="total-value green">R$ {{ total_proventos|floatformat:2 }}</div>
+      </div>
+      <div class="item" style="padding: 0 16px;">
+        <div class="total-label">Total Descontos</div>
+        <div class="total-value red">R$ {{ total_descontos|floatformat:2 }}</div>
+      </div>
+      <div class="item" style="padding-left: 16px;">
+        <div class="total-label">Líquido a Receber</div>
+        <div class="total-value blue">R$ {{ total_liquido|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Líquido destacado ── -->
+  <div class="net-pay">
+    <div class="net-pay-label">VALOR LÍQUIDO A RECEBER</div>
+    <div class="net-pay-value">R$ {{ total_liquido|floatformat:2 }}</div>
+  </div>
+
+  <!-- ── Bases de incidência ── -->
+  <div class="bases">
+    <span class="base-item"><strong>Base INSS:</strong> R$ {{ base_inss|floatformat:2 }}</span>
+    <span class="base-item"><strong>Base IRRF:</strong> R$ {{ base_irrf|floatformat:2 }}</span>
+    <span class="base-item"><strong>Base FGTS:</strong> R$ {{ base_fgts|floatformat:2 }}</span>
+  </div>
+
+  <!-- ── Encargos patronais (informativos, não compõem o líquido) ── -->
+  {% if encargos %}
+  <div class="encargos">
+    Encargos patronais (referência):
+    {% for item in encargos %}
+    <span class="encargo-item"><strong>{{ item.descricao }}:</strong> R$ {{ item.valor|floatformat:2 }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Assinatura ── -->
+  <div class="signature">
+    <div class="signature-text">
+      Declaro que recebi a importância líquida de <strong>R$ {{ total_liquido|floatformat:2 }}</strong>
+      discriminada neste recibo, referente à competência {{ competencia }}.
+    </div>
+    <div class="signature-lines">
+      <div class="sig-line">
+        <div class="sig-line-bar"></div>
+        <div class="sig-line-label">{{ employee.name }}</div>
+      </div>
+      <div class="sig-line">
+        <div class="sig-line-bar"></div>
+        <div class="sig-line-label">{{ entity.name }} — Responsável</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Rodapé ── -->
+  <div class="footer">
+    <span class="footer-text">
+      Documento gerado pelo Sistema RH &mdash; {{ competencia }}
+      {% if is_fechada %} &mdash; Folha fechada e auditada{% endif %}
+    </span>
+    {% if payroll.closure %}
+    <span class="footer-hash" title="Hash de integridade SHA-256">
+      #{{ payroll.closure.hash_integridade|slice:":24" }}…
+    </span>
+    {% endif %}
+  </div>
+
+</div>
+</body>
+</html>

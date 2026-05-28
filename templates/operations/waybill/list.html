@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}Romaneios{% endblock %}
+{% block nav_title %}Romaneios{% endblock %}
+
+{% block quick_action %}
+<a href="{% url 'operations:waybill-create' %}"
+   class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+          bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+  <svg class="w-4 h-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+  Novo
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── Filtros ── #}
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 mb-4">
+  {# BUG #1 — C4 CORRIGIDO: hx-trigger agora inclui `change from:input[type=date]`                #}
+  {# BUG #2 — C9 CORRIGIDO: aria-label adicionado a todos os campos de filtro                     #}
+  {# MELHORIA #1 — C4: hx-indicator referenciado explicitamente ao loading bar global              #}
+  <form method="get" id="filter-form"
+        hx-get="{% url 'operations:waybill-list' %}"
+        hx-target="#waybill-table"
+        hx-trigger="change from:select, change from:input[type=date], keyup changed delay:400ms from:input[name=q]"
+        hx-push-url="true"
+        hx-indicator="#global-loading"
+        class="flex flex-wrap gap-3 p-3">
+
+    {# Busca #}
+    <div class="flex-1 min-w-40">
+      <label for="id_q" class="sr-only">Buscar romaneios</label>
+      <input type="text"
+             name="q"
+             id="id_q"
+             value="{{ request.GET.q }}"
+             placeholder="Buscar motorista, número..."
+             aria-label="Buscar romaneios"
+             class="input w-full text-sm" />
+    </div>
+
+    {# Status #}
+    <label for="id_status" class="sr-only">Filtrar por status</label>
+    <select name="status" id="id_status" aria-label="Filtrar por status" class="input text-sm">
+      <option value="">Todos os status</option>
+      {% for value, label in status_choices %}
+      <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    {# Motorista #}
+    <label for="id_driver" class="sr-only">Filtrar por motorista</label>
+    <select name="driver" id="id_driver" aria-label="Filtrar por motorista" class="input text-sm">
+      <option value="">Todos os motoristas</option>
+      {% for driver in drivers %}
+      <option value="{{ driver.pk }}" {% if request.GET.driver == driver.pk|stringformat:"s" %}selected{% endif %}>
+        {{ driver.name }}
+      </option>
+      {% endfor %}
+    </select>
+
+    {# Datas #}
+    <label for="id_date_start" class="sr-only">Data inicial</label>
+    <input type="date"
+           name="date_start"
+           id="id_date_start"
+           value="{{ request.GET.date_start }}"
+           aria-label="Data inicial"
+           class="input text-sm" />
+
+    <label for="id_date_end" class="sr-only">Data final</label>
+    <input type="date"
+           name="date_end"
+           id="id_date_end"
+           value="{{ request.GET.date_end }}"
+           aria-label="Data final"
+           class="input text-sm" />
+  </form>
+</div>
+
+{# ── Tabela ── #}
+<div id="waybill-table">
+  {% include "operations/waybill/_table.html" %}
+</div>
+
+{% endblock %}

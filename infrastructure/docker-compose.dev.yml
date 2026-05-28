@@ -1,0 +1,72 @@
+# =============================================================================
+# SafraLog — infrastructure/docker-compose.dev.yml
+# Override para desenvolvimento local
+# =============================================================================
+services:
+  django:
+    command: dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ..:/app
+      - media_data:/app/media
+      - static_data:/app/static_collected
+      - app_logs:/app/logs
+      - /app/node_modules
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DJANGO_DEBUG: "True"
+
+  celery-worker:
+    volumes:
+      - ..:/app
+      - media_data:/app/media
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+
+  celery-beat:
+    volumes:
+      - ..:/app
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+
+  # ---------------------------------------------------------------------------
+  # Postgres — porta exposta apenas em dev para acesso externo (TablePlus etc.)
+  # ---------------------------------------------------------------------------
+  postgres:
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT_EXPOSE:-5432}:5432"
+
+  # ---------------------------------------------------------------------------
+  # Redis — porta exposta apenas em dev para acesso externo (RedisInsight etc.)
+  # ---------------------------------------------------------------------------
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_PORT_EXPOSE:-6379}:6379"
+
+  # ---------------------------------------------------------------------------
+  # Flower — Monitoramento Celery (apenas dev)
+  # ---------------------------------------------------------------------------
+  flower:
+    build:
+      context: ..
+      dockerfile: docker/django/Dockerfile
+    command: flower
+    ports:
+      - "127.0.0.1:${FLOWER_PORT:-5555}:5555"
+    env_file: ../.env
+    depends_on:
+      - redis
+    networks:
+      - safralog_net
+
+  # ---------------------------------------------------------------------------
+  # MailHog — Email catcher (apenas dev)
+  # ---------------------------------------------------------------------------
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    networks:
+      - safralog_net

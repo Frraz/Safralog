@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{# BUG #4 FIX — guard driver.name no block title #}
+{% block title %}Adiantamento — {% if advance.driver %}{{ advance.driver.name }}{% else %}—{% endif %}{% endblock %}
+{% block nav_title %}Adiantamento{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto space-y-4">
+
+  {# BUG #5 FIX — x-data no container; onclick inline substituído por Alpine #}
+  <div class="flex items-center justify-between gap-3" x-data>
+    <div class="flex items-center gap-2">
+      {% advance_status_badge advance.status %}
+      <span class="text-sm text-gray-500 dark:text-gray-400">
+        {{ advance.payment_date|date:"d/m/Y" }}
+      </span>
+    </div>
+    {% if can_cancel %}
+    <form method="post" action="{% url 'finance:advance-cancel' pk=advance.pk %}" x-ref="formCancelar">
+      {% csrf_token %}
+      <button type="button"
+              @click="if (confirm('Cancelar este adiantamento?')) $refs.formCancelar.submit()"
+              class="px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400
+                     border border-red-200 dark:border-red-800 rounded-lg
+                     hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+        Cancelar
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+
+    <div class="px-4 py-4 text-center border-b border-gray-100 dark:border-gray-800
+                bg-red-50 dark:bg-red-900/10 rounded-t-xl">
+      <p class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">
+        Valor do Adiantamento
+      </p>
+      <p class="mt-1 text-3xl font-black text-red-700 dark:text-red-400">
+        {{ advance.amount|currency_br }}
+      </p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-0 divide-y divide-gray-100 dark:divide-gray-800">
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-24 shrink-0 mt-0.5">Motorista</span>
+        {# BUG #4 FIX — guard driver antes de acessar .pk e .name #}
+        {% if advance.driver %}
+        <a href="{% url 'logistics:driver-detail' pk=advance.driver.pk %}"
+           class="text-sm font-medium text-gray-900 dark:text-white
+                  hover:text-green-600 transition-colors">
+          {{ advance.driver.name }}
+        </a>
+        {% else %}
+        <span class="text-sm text-gray-400">—</span>
+        {% endif %}
+      </div>
+      <div class="px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-24 shrink-0 mt-0.5">Pagamento</span>
+        <span class="text-sm text-gray-900 dark:text-white">
+          {{ advance.get_payment_method_display }}
+        </span>
+      </div>
+      {% if advance.harvest %}
+      <div class="col-span-2 px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-24 shrink-0 mt-0.5">Safra</span>
+        <span class="text-sm text-gray-900 dark:text-white">{{ advance.harvest.name }}</span>
+      </div>
+      {% endif %}
+      {% if advance.reference_code %}
+      <div class="col-span-2 px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-24 shrink-0 mt-0.5">Comprovante</span>
+        <span class="text-sm font-mono text-gray-900 dark:text-white">
+          {{ advance.reference_code }}
+        </span>
+      </div>
+      {% endif %}
+      {% if advance.notes %}
+      <div class="col-span-2 px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-24 shrink-0 mt-0.5">Observações</span>
+        <span class="text-sm text-gray-700 dark:text-gray-300">{{ advance.notes }}</span>
+      </div>
+      {% endif %}
+      {% if advance.ledger_entry %}
+      <div class="col-span-2 px-4 py-3 flex items-start gap-3">
+        <span class="text-xs text-gray-500 dark:text-gray-400 w-24 shrink-0 mt-0.5">Lançamento</span>
+        <span class="text-xs font-mono text-gray-500 dark:text-gray-400">
+          {{ advance.ledger_entry.pk }}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <a href="{% url 'finance:advance-list' %}"
+       class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+      ← Voltar
+    </a>
+  </div>
+
+</div>
+{% endblock %}

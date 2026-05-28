@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Regiões{% endblock %}
+{% block nav_title %}Regiões de Origem{% endblock %}
+
+{% block quick_action %}
+<a href="{% url 'operations:region-create' %}"
+   class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+          bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+  Nova Região
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+
+  {% for region in regions %}
+  <div class="flex items-center gap-4 px-4 py-3">
+    <div class="flex-1 min-w-0">
+      <p class="font-medium text-gray-900 dark:text-white text-sm">{{ region.name }}</p>
+      {% if region.description %}
+      <p class="text-xs text-gray-400 mt-0.5 truncate">{{ region.description }}</p>
+      {% endif %}
+    </div>
+
+    <div class="text-right shrink-0">
+      <p class="text-sm font-bold text-green-600 dark:text-green-400">R$ {{ region.default_price_per_ton }}/ton</p>
+      <p class="text-xs text-gray-400">{{ region.fields.count }} talhão(ões)</p>
+    </div>
+
+    <div class="flex gap-1 shrink-0">
+      <a href="{% url 'operations:region-update' pk=region.pk %}"
+         class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+         title="Editar">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+      </a>
+      <form method="post" action="{% url 'operations:region-delete' pk=region.pk %}"
+            onsubmit="return confirm('Excluir a região \'{{ region.name }}\'?')">
+        {% csrf_token %}
+        <button type="submit"
+                class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                title="Excluir">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+  {% empty %}
+  <div class="px-4 py-10 text-center text-gray-400 dark:text-gray-500">
+    <p class="text-sm">Nenhuma região cadastrada.</p>
+    <a href="{% url 'operations:region-create' %}" class="text-green-600 hover:underline text-sm mt-1 inline-block">
+      Cadastrar primeira região
+    </a>
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

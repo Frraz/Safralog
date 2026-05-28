@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% block title %}{% if action == 'create' %}Novo colaborador{% else %}Editar: {{ person.name }}{% endif %}{% endblock %}
+{% block mobile_title %}{% if action == 'create' %}Novo colaborador{% else %}Editar{% endif %}{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Cabeçalho -->
+  <div class="flex items-center gap-3">
+    <a href="{% url 'employees:list' %}"
+      class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">
+        {% if action == 'create' %}Novo colaborador{% else %}Editar: {{ person.name }}{% endif %}
+      </h1>
+      <p class="text-sm text-slate-400 mt-0.5">Preencha todos os campos obrigatórios</p>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data"
+    x-data="{ tipo: '{{ form.person_type.value|default:'employee' }}' }">
+    {% csrf_token %}
+    <div class="space-y-5">
+
+      <!-- Erros gerais -->
+      {% if form.non_field_errors %}
+      <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
+        {% for error in form.non_field_errors %}
+        <p class="text-sm text-red-700">{{ error }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Vínculo empregatício -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+          <svg class="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/>
+          </svg>
+          <h2 class="text-sm font-semibold text-slate-700">Vínculo empregatício</h2>
+        </div>
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Tipo de contrato <span class="text-red-500">*</span>
+            </label>
+            <select name="person_type" x-model="tipo"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 bg-white
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+              <option value="employee" {% if form.person_type.value == 'employee' %}selected{% endif %}>Funcionário CLT</option>
+              <option value="daily" {% if form.person_type.value == 'daily' %}selected{% endif %}>Diarista</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Entidade <span class="text-red-500">*</span>
+            </label>
+            <select name="entity" id="id_entity"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.entity.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800 bg-white
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+              <option value="">Selecione a entidade</option>
+              {% for entity in form.entity.field.queryset %}
+              <option value="{{ entity.pk }}"
+                {% if form.entity.value|stringformat:"s" == entity.pk|stringformat:"s" %}selected{% endif %}>
+                {{ entity.name }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.entity.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.entity.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Fazenda <span class="text-red-500">*</span>
+            </label>
+            <select name="farm" id="id_farm"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.farm.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800 bg-white
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+              <option value="">Selecione a entidade primeiro</option>
+              {% if form.farm.value %}
+              {% for farm in form.farm.field.queryset %}
+              <option value="{{ farm.pk }}"
+                {% if form.farm.value|stringformat:"s" == farm.pk|stringformat:"s" %}selected{% endif %}>
+                {{ farm.name }}
+              </option>
+              {% endfor %}
+              {% endif %}
+            </select>
+            {% if form.farm.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.farm.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Função <span class="text-red-500">*</span>
+            </label>
+            <select name="job_role" id="id_job_role"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.job_role.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800 bg-white
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+              <option value="">Selecione a entidade primeiro</option>
+              {% if form.job_role.value %}
+              {% for role in form.job_role.field.queryset %}
+              <option value="{{ role.pk }}"
+                {% if form.job_role.value|stringformat:"s" == role.pk|stringformat:"s" %}selected{% endif %}>
+                {{ role.name }}
+              </option>
+              {% endfor %}
+              {% endif %}
+            </select>
+            {% if form.job_role.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.job_role.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Data de admissão <span class="text-red-500">*</span>
+            </label>
+            <input type="date" name="admission_date"
+              value="{{ form.admission_date.value|date:'Y-m-d'|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.admission_date.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+            {% if form.admission_date.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.admission_date.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Dados pessoais -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+          <svg class="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+          <h2 class="text-sm font-semibold text-slate-700">Dados pessoais</h2>
+        </div>
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+          <div class="col-span-1 sm:col-span-2 lg:col-span-3">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Nome completo <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="name" value="{{ form.name.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.name.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="Nome completo do colaborador">
+            {% if form.name.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.name.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              CPF <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="cpf" value="{{ form.cpf.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.cpf.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800 font-mono
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="000.000.000-00">
+            {% if form.cpf.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.cpf.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">RG</label>
+            <input type="text" name="rg" value="{{ form.rg.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="0000000-0">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Data de nascimento
+            </label>
+            <input type="date" name="birth_date"
+              value="{{ form.birth_date.value|date:'Y-m-d'|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Telefone</label>
+            <input type="text" name="phone" value="{{ form.phone.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="(00) 00000-0000">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Estado civil</label>
+            <select name="marital_status"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 bg-white
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+              {% for value, label in form.marital_status.field.choices %}
+              <option value="{{ value }}" {% if form.marital_status.value == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-span-1 sm:col-span-2 lg:col-span-3">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Endereço</label>
+            <input type="text" name="address" value="{{ form.address.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="Rua, número, bairro, cidade, UF">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Dados trabalhistas e remuneração -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+          <svg class="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h2 class="text-sm font-semibold text-slate-700">Dados trabalhistas e remuneração</h2>
+        </div>
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">PIS/PASEP</label>
+            <input type="text" name="pis" value="{{ form.pis.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 font-mono
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="000.00000.00-0">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">CTPS</label>
+            <input type="text" name="ctps" value="{{ form.ctps.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="Número da CTPS">
+          </div>
+
+          <div x-show="tipo === 'employee'">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Salário mensal (R$) <span class="text-red-500" x-show="tipo === 'employee'">*</span>
+            </label>
+            <input type="text" name="salary" value="{{ form.salary.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.salary.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="0,00">
+            {% if form.salary.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.salary.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div x-show="tipo === 'daily'">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Valor da diária (R$) <span class="text-red-500" x-show="tipo === 'daily'">*</span>
+            </label>
+            <input type="text" name="daily_rate" value="{{ form.daily_rate.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.daily_rate.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="0,00">
+            {% if form.daily_rate.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.daily_rate.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Dados bancários -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+          <svg class="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+          </svg>
+          <h2 class="text-sm font-semibold text-slate-700">Dados bancários <span class="text-xs font-normal text-slate-400">(opcional)</span></h2>
+        </div>
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Banco</label>
+            <input type="text" name="bank" value="{{ form.bank.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="Nome do banco">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Agência</label>
+            <input type="text" name="bank_agency" value="{{ form.bank_agency.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="0000">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Conta</label>
+            <input type="text" name="bank_account" value="{{ form.bank_account.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="00000-0">
+          </div>
+        </div>
+      </div>
+
+      <!-- Observações -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100">
+          <h2 class="text-sm font-semibold text-slate-700">Observações <span class="text-xs font-normal text-slate-400">(opcional)</span></h2>
+        </div>
+        <div class="p-5">
+          <textarea name="notes" rows="3"
+            class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                   focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300 resize-none"
+            placeholder="Observações gerais sobre o colaborador...">{{ form.notes.value|default:'' }}</textarea>
+        </div>
+      </div>
+
+      <!-- Ações -->
+      <div class="flex items-center justify-between gap-3 pb-2">
+        <a href="{% url 'employees:list' %}"
+          class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition">
+          Cancelar
+        </a>
+        <button type="submit"
+          class="px-6 py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold rounded-xl transition shadow-sm shadow-sky-500/20
+                 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+          {% if action == 'create' %}Cadastrar colaborador{% else %}Salvar alterações{% endif %}
+        </button>
+      </div>
+
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.getElementById('id_entity').addEventListener('change', function() {
+    var entityId = this.value;
+    var farmsUrl = '{% url "employees:htmx_farms" %}';
+    var rolesUrl = '{% url "employees:htmx_jobroles" %}';
+
+    if (!entityId) {
+      document.getElementById('id_farm').innerHTML = '<option value="">Selecione a entidade primeiro</option>';
+      document.getElementById('id_job_role').innerHTML = '<option value="">Selecione a entidade primeiro</option>';
+      return;
+    }
+
+    fetch(farmsUrl + '?entity=' + entityId)
+      .then(function(r) { return r.text(); })
+      .then(function(html) { document.getElementById('id_farm').innerHTML = html; });
+
+    fetch(rolesUrl + '?entity=' + entityId)
+      .then(function(r) { return r.text(); })
+      .then(function(html) { document.getElementById('id_job_role').innerHTML = html; });
+  });
+</script>
+{% endblock %}

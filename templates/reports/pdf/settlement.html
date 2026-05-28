@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Acerto Financeiro — {{ settlement_id }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; font-size: 9.5pt; color: #111827; line-height: 1.5; }
+
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid #16a34a; }
+    .header h1 { font-size: 16pt; font-weight: 700; color: #16a34a; }
+    .header-sub { font-size: 9pt; color: #6b7280; margin-top: 2px; }
+    .doc-label { font-size: 11pt; font-weight: 700; color: #111827; }
+    .doc-period { font-size: 9pt; color: #6b7280; margin-top: 2px; }
+
+    .section { margin-bottom: 18px; }
+    .section-title { font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7280; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; margin-bottom: 8px; }
+
+    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .info-item dt { font-size: 7.5pt; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+    .info-item dd { font-size: 9.5pt; font-weight: 600; color: #111827; margin-top: 1px; }
+
+    /* Caixa de dados do favorecido */
+    .favorecido-box { background: #f0fdf4; border: 2px solid #16a34a; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; }
+    .favorecido-box .title { font-size: 8pt; font-weight: 700; text-transform: uppercase; color: #15803d; letter-spacing: 0.8px; margin-bottom: 8px; }
+    .favorecido-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .favorecido-item dt { font-size: 7pt; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+    .favorecido-item dd { font-size: 9.5pt; font-weight: 700; color: #111827; }
+    .favorecido-pix { grid-column: 1 / -1; background: #dcfce7; border-radius: 4px; padding: 6px 10px; margin-top: 4px; }
+    .favorecido-pix dt { font-size: 7pt; color: #15803d; font-weight: 700; text-transform: uppercase; }
+    .favorecido-pix dd { font-size: 10pt; font-weight: 700; color: #14532d; font-family: monospace; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+    th { text-align: left; background: #f9fafb; padding: 5px 6px; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #6b7280; border: 1px solid #e5e7eb; }
+    td { padding: 5px 6px; border: 1px solid #e5e7eb; vertical-align: middle; }
+    td.amount { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td.debit-amount { text-align: right; color: #dc2626; white-space: nowrap; }
+    tr.subtotal td { font-weight: 700; background: #f9fafb; }
+
+    .summary-box { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 2px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-top: 14px; }
+    .summary-item { padding: 12px 16px; text-align: center; border-right: 1px solid #e5e7eb; }
+    .summary-item:last-child { border-right: none; }
+    .summary-item.net { background: #f0fdf4; }
+    .s-label { font-size: 7.5pt; text-transform: uppercase; color: #6b7280; letter-spacing: 0.5px; }
+    .s-value { font-size: 13pt; font-weight: 800; margin-top: 2px; color: #111827; }
+    .summary-item.net .s-value { color: #15803d; }
+    .summary-item.debit .s-value { color: #dc2626; }
+
+    .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
+    .sig-line { border-top: 1px solid #374151; padding-top: 6px; font-size: 9pt; color: #374151; }
+
+    .footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 7.5pt; color: #9ca3af; text-align: center; }
+
+    .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 7.5pt; font-weight: 600; }
+    .badge-closed { background: #dcfce7; color: #15803d; }
+    .badge-approved { background: #dbeafe; color: #1d4ed8; }
+    .badge-pending { background: #fef9c3; color: #854d0e; }
+    .badge-cancelled { background: #fee2e2; color: #dc2626; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>{{ tenant.name|upper }}</h1>
+      <div class="header-sub">Acerto Financeiro de Motorista</div>
+    </div>
+    <div style="text-align: right;">
+      <div class="doc-label">ACERTO #{{ settlement_id }}</div>
+      <div class="doc-period">
+        {{ settlement.period_start|date:"d/m/Y" }} a {{ settlement.period_end|date:"d/m/Y" }}
+      </div>
+    </div>
+  </div>
+
+  <!-- DADOS DO FAVORECIDO -->
+  {% with snap=settlement.snapshot_data %}
+  {% if snap.proprietario and snap.proprietario.name %}
+  <div class="favorecido-box">
+    <div class="title">Dados do Favorecido (Dono do Caminhão)</div>
+    <div class="favorecido-grid">
+      <div class="favorecido-item">
+        <dt>Nome / Razão Social</dt>
+        <dd>{{ snap.proprietario.name }}</dd>
+      </div>
+      {% if snap.vehicle.plate %}
+      <div class="favorecido-item">
+        <dt>Placa do Veículo</dt>
+        <dd>{{ snap.vehicle.plate }}{% if snap.vehicle.brand %} — {{ snap.vehicle.brand }} {{ snap.vehicle.model }}{% endif %}</dd>
+      </div>
+      {% endif %}
+      {% if snap.proprietario.bank_name %}
+      <div class="favorecido-item">
+        <dt>Banco</dt>
+        <dd>{{ snap.proprietario.bank_name }}</dd>
+      </div>
+      {% endif %}
+      {% if snap.proprietario.bank_agency %}
+      <div class="favorecido-item">
+        <dt>Agência / Conta</dt>
+        <dd>{{ snap.proprietario.bank_agency }} / {{ snap.proprietario.bank_account }} ({{ snap.proprietario.bank_account_type }})</dd>
+      </div>
+      {% endif %}
+      {% if snap.proprietario.document %}
+      <div class="favorecido-item">
+        <dt>CPF / CNPJ</dt>
+        <dd>{{ snap.proprietario.document }}</dd>
+      </div>
+      {% endif %}
+      {% if snap.proprietario.pix_key %}
+      <div class="favorecido-pix">
+        <dt>Chave PIX ({{ snap.proprietario.pix_key_type }})</dt>
+        <dd>{{ snap.proprietario.pix_key }}</dd>
+      </div>
+      {% endif %}
+    </div>
+    <div style="margin-top: 8px; font-size: 8pt; color: #6b7280;">
+      Motorista no período: <strong>{{ snap.driver.name }}</strong>
+    </div>
+  </div>
+  {% else %}
+  <div style="margin-bottom: 16px; padding: 10px 14px; background: #fef9c3; border: 1px solid #d97706; border-radius: 6px; font-size: 8.5pt; color: #92400e;">
+    <strong>Atenção:</strong> Proprietário do veículo não cadastrado. Pagamento será realizado para: <strong>{{ settlement.account.name }}</strong>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- INFORMAÇÕES DO ACERTO -->
+  <div class="section">
+    <div class="section-title">Informações do acerto</div>
+    <div class="info-grid">
+      <div class="info-item">
+        <dt>Motorista</dt>
+        <dd>{{ settlement.snapshot_data.driver.name|default:settlement.account.name }}</dd>
+      </div>
+      <div class="info-item">
+        <dt>Período</dt>
+        <dd>{{ settlement.period_start|date:"d/m/Y" }} – {{ settlement.period_end|date:"d/m/Y" }}</dd>
+      </div>
+      <div class="info-item">
+        <dt>Status</dt>
+        <dd>
+          <span class="badge
+            {% if settlement.status == 'closed' %}badge-closed
+            {% elif settlement.status == 'approved' %}badge-approved
+            {% elif settlement.status == 'pending_approval' %}badge-pending
+            {% elif settlement.status == 'cancelled' %}badge-cancelled
+            {% endif %}
+          ">{{ settlement.get_status_display }}</span>
+        </dd>
+      </div>
+      {% if settlement.approved_by %}
+      <div class="info-item">
+        <dt>Aprovado por</dt>
+        <dd>{{ settlement.approved_by.get_full_name|default:settlement.approved_by.email }}</dd>
+      </div>
+      {% endif %}
+      {% if settlement.approved_at %}
+      <div class="info-item">
+        <dt>Aprovado em</dt>
+        <dd>{{ settlement.approved_at|date:"d/m/Y" }}</dd>
+      </div>
+      {% endif %}
+      {% if settlement.closed_at %}
+      <div class="info-item">
+        <dt>Fechado em</dt>
+        <dd>{{ settlement.closed_at|date:"d/m/Y" }}</dd>
+      </div>
+      {% endif %}
+      <div class="info-item">
+        <dt>Romaneios</dt>
+        <dd>{{ settlement.snapshot_waybill_count|default:"—" }}</dd>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROMANEIOS (via snapshot para dados congelados) -->
+  {% with waybills=settlement.snapshot_data.waybills %}
+  {% if waybills %}
+  <div class="section">
+    <div class="section-title">Romaneios</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Nº</th>
+          <th>Data</th>
+          <th>Talhão / Origem</th>
+          <th>Veículo</th>
+          <th class="amount">Peso líq. (t)</th>
+          <th class="amount">R$/ton</th>
+          <th class="amount">Total (R$)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for w in waybills %}
+        <tr>
+          <td style="white-space:nowrap;">{{ w.number }}</td>
+          <td style="white-space:nowrap;">{{ w.date }}</td>
+          <td>{{ w.field|default:"—" }}</td>
+          <td style="font-family:monospace;font-weight:700;">{{ w.vehicle }}</td>
+          <td class="amount">{{ w.net_tons|floatformat:3 }}</td>
+          <td class="amount">{{ w.unit_price|floatformat:2 }}</td>
+          <td class="amount"><strong>R$ {{ w.total_value|floatformat:2 }}</strong></td>
+        </tr>
+        {% endfor %}
+        <tr class="subtotal">
+          <td colspan="4">SUBTOTAL ROMANEIOS</td>
+          <td class="amount">{{ settlement.snapshot_data.totals.net_tons|floatformat:3 }} t</td>
+          <td></td>
+          <td class="amount">R$ {{ settlement.snapshot_total_credits|floatformat:2 }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- ABASTECIMENTOS (via snapshot — mostra preço do motorista) -->
+  {% with fuelings=settlement.snapshot_data.fuelings %}
+  {% if fuelings %}
+  <div class="section">
+    <div class="section-title">Descontos — Abastecimentos</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Veículo</th>
+          <th>Combustível</th>
+          <th class="amount">Litros</th>
+          <th class="amount">R$/L (motorista)</th>
+          <th class="amount">Extras (R$)</th>
+          <th class="amount">Total desconto (R$)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in fuelings %}
+        <tr>
+          <td style="white-space:nowrap;">{{ f.date }}</td>
+          <td style="font-family:monospace;font-weight:700;">{{ f.vehicle|default:"—" }}</td>
+          <td>{{ f.fuel_type|default:"Diesel" }}</td>
+          <td class="amount">{{ f.liters|floatformat:3 }}</td>
+          <td class="amount">R$ {{ f.driver_price|floatformat:4 }}</td>
+          <td class="amount">{% if f.extras_amount %}R$ {{ f.extras_amount|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td class="debit-amount"><strong>R$ {{ f.total|floatformat:2 }}</strong></td>
+        </tr>
+        {% endfor %}
+        <tr class="subtotal">
+          <td colspan="6">SUBTOTAL ABASTECIMENTOS</td>
+          <td class="debit-amount">R$ {{ settlement.snapshot_data.totals.fueling_debit|floatformat:2 }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- ADIANTAMENTOS (via snapshot) -->
+  {% with advances=settlement.snapshot_data.advances %}
+  {% if advances %}
+  <div class="section">
+    <div class="section-title">Descontos — Adiantamentos</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Referência</th>
+          <th>Forma</th>
+          <th class="amount">Valor (R$)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in advances %}
+        <tr>
+          <td style="white-space:nowrap;">{{ a.date }}</td>
+          <td>{{ a.reference|default:"—" }}</td>
+          <td>{{ a.method|default:"—" }}</td>
+          <td class="debit-amount">R$ {{ a.amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="subtotal">
+          <td colspan="3">SUBTOTAL ADIANTAMENTOS</td>
+          <td class="debit-amount">R$ {{ settlement.snapshot_data.totals.advance_debit|floatformat:2 }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- RESUMO FINANCEIRO -->
+  <div class="summary-box">
+    <div class="summary-item">
+      <div class="s-label">Total Produção (Crédito)</div>
+      <div class="s-value">R$ {{ settlement.snapshot_total_credits|floatformat:2|default:"0,00" }}</div>
+    </div>
+    <div class="summary-item debit">
+      <div class="s-label">Total Descontos (Débito)</div>
+      <div class="s-value">R$ {{ settlement.snapshot_total_debits|floatformat:2|default:"0,00" }}</div>
+    </div>
+    <div class="summary-item net">
+      <div class="s-label">Saldo Líquido a Pagar</div>
+      <div class="s-value">R$ {{ settlement.snapshot_net_balance|floatformat:2|default:"0,00" }}</div>
+    </div>
+  </div>
+
+  {% if settlement.notes %}
+  <div class="section" style="margin-top: 16px;">
+    <div class="section-title">Observações</div>
+    <p style="font-size: 9pt; color: #374151; white-space: pre-wrap;">{{ settlement.notes }}</p>
+  </div>
+  {% endif %}
+
+  <!-- ASSINATURAS -->
+  <div class="signatures">
+    <div>
+      <div class="sig-line">
+        {% with snap=settlement.snapshot_data %}
+        <strong>{% if snap.proprietario and snap.proprietario.name %}{{ snap.proprietario.name }}{% else %}{{ settlement.account.name }}{% endif %}</strong><br>
+        Motorista / Favorecido
+        {% endwith %}
+      </div>
+    </div>
+    <div>
+      <div class="sig-line">
+        <strong>Responsável Financeiro</strong><br>
+        {{ tenant.name }}
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Gerado em {{ settlement.updated_at|date:"d/m/Y \à\s H:i" }}
+    &middot; SafraLog &middot; {{ tenant.name }}
+  </div>
+
+</body>
+</html>

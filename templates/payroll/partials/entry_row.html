@@ -1,0 +1,59 @@
+<tr class="hover:bg-slate-50/50 transition-colors group">
+  <td class="px-4 py-3">
+    <span class="text-xs font-mono text-slate-400">{{ entry.rubrica.codigo }}</span>
+  </td>
+  <td class="px-4 py-3">
+    <div class="flex items-center gap-2">
+      {% if entry.rubrica.natureza == 'PROVENTO' %}
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+      {% elif entry.rubrica.natureza == 'DESCONTO' %}
+        <span class="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></span>
+      {% else %}
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0"></span>
+      {% endif %}
+      <span class="font-medium text-slate-800">{{ entry.rubrica.nome }}</span>
+      {% if entry.descricao %}
+        <span class="text-xs text-slate-400 hidden md:inline">— {{ entry.descricao }}</span>
+      {% endif %}
+    </div>
+  </td>
+  <td class="px-4 py-3 text-right text-xs text-slate-400 hidden md:table-cell">
+    {% if entry.quantidade %}{{ entry.quantidade }}{% endif %}
+  </td>
+  <td class="px-4 py-3 text-right font-semibold
+    {% if entry.rubrica.natureza == 'PROVENTO' %}text-emerald-700
+    {% elif entry.rubrica.natureza == 'DESCONTO' %}text-red-600
+    {% else %}text-slate-500{% endif %}">
+    {% if entry.rubrica.natureza == 'DESCONTO' %}-{% endif %}R$ {{ entry.valor|floatformat:2 }}
+  </td>
+  <td class="px-4 py-3 text-center hidden sm:table-cell">
+    {% if entry.origem == 'ENGINE' %}
+      <span class="text-xs text-slate-400">automático</span>
+    {% elif entry.origem == 'MANUAL' %}
+      <span class="inline-flex items-center gap-1 text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+        <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+        manual
+      </span>
+    {% else %}
+      <span class="text-xs text-slate-400">{{ entry.origem|lower }}</span>
+    {% endif %}
+  </td>
+  {% if not payroll.is_fechada %}
+  <td class="px-4 py-3">
+    {% if entry.origem == 'MANUAL' %}
+    <button
+      hx-delete="{% url 'payroll:cancel_entry' entry.id %}"
+      hx-target="closest tr"
+      hx-swap="outerHTML swap:0.3s"
+      hx-confirm="Cancelar este lançamento?"
+      class="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition opacity-0 group-hover:opacity-100">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>

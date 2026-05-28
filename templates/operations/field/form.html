@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == "create" %}Novo Talhão{% else %}Editar {{ field.name }}{% endif %}{% endblock %}
+{% block nav_title %}{% if action == "create" %}Novo Talhão{% else %}Editar Talhão{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+      <div class="px-4 py-4 space-y-3">
+        <div>
+          <label class="label">Safra *</label>
+          {{ form.harvest }}
+          {% if form.harvest.errors %}<p class="text-xs text-red-500 mt-1">{{ form.harvest.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="label">Nome do talhão *</label>
+          {{ form.name }}
+          {% if form.name.errors %}<p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="label">Área (ha)</label>
+          {{ form.area_ha }}
+        </div>
+        <div>
+          <label class="label">Localização / Referência</label>
+          {{ form.location_description }}
+        </div>
+        <div>
+          <label class="label">Observações</label>
+          {{ form.notes }}
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit"
+              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+        {% if action == "create" %}Criar Talhão{% else %}Salvar{% endif %}
+      </button>
+      <a href="{% if field %}{% url 'operations:field-detail' pk=field.pk %}{% else %}{% url 'operations:field-list' %}{% endif %}"
+         class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 transition-colors">
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

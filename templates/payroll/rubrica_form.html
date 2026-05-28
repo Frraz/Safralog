@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}{% if rubrica %}Editar Rubrica{% else %}Nova Rubrica{% endif %}{% endblock %}
+{% block mobile_title %}{% if rubrica %}Editar Rubrica{% else %}Nova Rubrica{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-5">
+
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-1.5 text-xs text-slate-400">
+    <a href="{% url 'payroll:rubrica_list' %}" class="hover:text-slate-600 transition">Rubricas</a>
+    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+    <span class="text-slate-800 font-medium">{% if rubrica %}{{ rubrica.codigo }}{% else %}Nova Rubrica{% endif %}</span>
+  </nav>
+
+  <!-- Aviso de rubrica de sistema -->
+  {% if rubrica.is_sistema %}
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+    <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-semibold text-amber-800">Rubrica de sistema</p>
+      <p class="text-xs text-amber-700 mt-0.5">Esta rubrica é mantida automaticamente. Alterações podem afetar todos os cálculos de folha.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post"
+    action="{% if rubrica %}{% url 'payroll:rubrica_edit' rubrica.id %}{% else %}{% url 'payroll:rubrica_form' %}{% endif %}"
+    x-data="rubricaForm()"
+    class="space-y-5">
+    {% csrf_token %}
+
+    <!-- ── Identificação ── -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+        <h2 class="text-sm font-semibold text-slate-700">Identificação</h2>
+      </div>
+      <div class="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Código <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="codigo" value="{{ rubrica.codigo|default:'' }}"
+            maxlength="20" required placeholder="Ex: SAL001, HE150"
+            {% if rubrica.is_sistema %}readonly class="bg-slate-50"{% endif %}
+            class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 font-mono focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition uppercase">
+          <p class="text-xs text-slate-400 mt-1">Código único. Não pode ser alterado após criação.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Nome <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="nome" value="{{ rubrica.nome|default:'' }}"
+            maxlength="120" required placeholder="Ex: Salário Base"
+            class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Descrição</label>
+          <textarea name="descricao" rows="2"
+            placeholder="Descrição interna para identificação da rubrica"
+            class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition resize-none">{{ rubrica.descricao|default:'' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Classificação ── -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+        <h2 class="text-sm font-semibold text-slate-700">Classificação</h2>
+      </div>
+      <div class="px-5 py-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Natureza <span class="text-red-500">*</span>
+          </label>
+          <select name="natureza" required
+            class="w-full rounded-lg border border-slate-200 text-sm text-slate-800 px-3 py-2.5 bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+            <option value="">Selecione...</option>
+            {% for val, label in natureza_choices %}
+            <option value="{{ val }}" {% if rubrica.natureza == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Categoria <span class="text-red-500">*</span>
+          </label>
+          <select name="categoria" required
+            class="w-full rounded-lg border border-slate-200 text-sm text-slate-800 px-3 py-2.5 bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+            <option value="">Selecione...</option>
+            {% for val, label in categoria_choices %}
+            <option value="{{ val }}" {% if rubrica.categoria == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Tipo <span class="text-red-500">*</span>
+          </label>
+          <select name="tipo" required
+            class="w-full rounded-lg border border-slate-200 text-sm text-slate-800 px-3 py-2.5 bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+            {% for val, label in tipo_choices %}
+            <option value="{{ val }}" {% if rubrica.tipo == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Periodicidade</label>
+          <select name="periodicidade"
+            class="w-full rounded-lg border border-slate-200 text-sm text-slate-800 px-3 py-2.5 bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+            {% for val, label in periodicidade_choices %}
+            <option value="{{ val }}" {% if rubrica.periodicidade == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Ordem de Cálculo</label>
+          <input type="number" name="ordem_calculo" value="{{ rubrica.ordem_calculo|default:100 }}" min="1" max="9999"
+            class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+          <p class="text-xs text-slate-400 mt-1">Menor = calculado primeiro.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Estratégia de Cálculo</label>
+          <select name="estrategia_calculo" x-model="estrategia"
+            class="w-full rounded-lg border border-slate-200 text-sm text-slate-800 px-3 py-2.5 bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+            {% for val, label in estrategia_choices %}
+            <option value="{{ val }}" {% if rubrica.estrategia_calculo == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Comportamento ── -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+        <h2 class="text-sm font-semibold text-slate-700">Comportamento</h2>
+      </div>
+      <div class="px-5 py-5 space-y-3">
+        {% for field, label, help in comportamento_fields %}
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="{{ field }}"
+            {% if rubrica and rubrica|attr:field %}checked{% endif %}
+            class="mt-0.5 rounded border-slate-300 text-sky-500 focus:ring-sky-500">
+          <div>
+            <span class="text-sm font-medium text-slate-700">{{ label }}</span>
+            {% if help %}<p class="text-xs text-slate-400 mt-0.5">{{ help }}</p>{% endif %}
+          </div>
+        </label>
+        {% empty %}
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="is_ativo" {% if not rubrica or rubrica.is_ativo %}checked{% endif %}
+            class="mt-0.5 rounded border-slate-300 text-sky-500 focus:ring-sky-500">
+          <div>
+            <span class="text-sm font-medium text-slate-700">Ativa</span>
+            <p class="text-xs text-slate-400 mt-0.5">Rubricas inativas não aparecem nos formulários nem são processadas pela engine.</p>
+          </div>
+        </label>
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="requer_quantidade" {% if rubrica.requer_quantidade %}checked{% endif %}
+            class="mt-0.5 rounded border-slate-300 text-sky-500 focus:ring-sky-500">
+          <div>
+            <span class="text-sm font-medium text-slate-700">Requer quantidade</span>
+            <p class="text-xs text-slate-400 mt-0.5">Exige informação de dias, horas ou unidades no lançamento.</p>
+          </div>
+        </label>
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="permite_valor_zero" {% if rubrica.permite_valor_zero %}checked{% endif %}
+            class="mt-0.5 rounded border-slate-300 text-sky-500 focus:ring-sky-500">
+          <div>
+            <span class="text-sm font-medium text-slate-700">Permite valor zero</span>
+            <p class="text-xs text-slate-400 mt-0.5">Se desmarcado, lançamentos com valor R$ 0,00 são descartados pela engine.</p>
+          </div>
+        </label>
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="exibir_holerite" {% if not rubrica or rubrica.exibir_holerite %}checked{% endif %}
+            class="mt-0.5 rounded border-slate-300 text-sky-500 focus:ring-sky-500">
+          <div>
+            <span class="text-sm font-medium text-slate-700">Exibir no holerite</span>
+            <p class="text-xs text-slate-400 mt-0.5">Encargos patronais como FGTS geralmente não aparecem no holerite do colaborador.</p>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ── Parâmetros de cálculo (avançado) ── -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+      x-show="estrategia !== 'MANUAL'"
+      x-cloak>
+      <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+        <h2 class="text-sm font-semibold text-slate-700">Parâmetros de Cálculo</h2>
+      </div>
+      <div class="px-5 py-5 space-y-4">
+
+        <!-- SERVICE: calculator_class -->
+        <div x-show="estrategia === 'SERVICE'" x-cloak>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Calculadora (Python path)</label>
+          <input type="text" name="calculator_class" value="{{ rubrica.calculator_class|default:'' }}"
+            placeholder="apps.payroll.engine.calculators.INSSCalculator"
+            class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm font-mono text-slate-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+        </div>
+
+        <!-- FORMULA -->
+        <div x-show="estrategia === 'FORMULA'" x-cloak>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Fórmula</label>
+          <textarea name="formula" rows="3"
+            placeholder="Ex: salario_base / dias_mes * dias_trabalhados"
+            class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm font-mono text-slate-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition resize-none">{{ rubrica.formula|default:'' }}</textarea>
+          <p class="text-xs text-slate-400 mt-1">Variáveis: <code class="bg-slate-100 px-1 rounded">salario_base, dias_trabalhados, dias_mes, horas_trabalhadas, horas_mes, valor_dia, valor_hora</code></p>
+        </div>
+
+        <!-- Parâmetros JSON -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Parâmetros adicionais (JSON)
+          </label>
+          <textarea name="parametros" rows="3"
+            placeholder='{"percentual": 8.0, "base_rubrica": "SAL001"}'
+            class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm font-mono text-slate-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition resize-none">{{ rubrica.parametros_json|default:'{}' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="flex items-center gap-3">
+      <a href="{% url 'payroll:rubrica_list' %}"
+        class="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+        Cancelar
+      </a>
+      <button type="submit"
+        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-lg text-sm font-bold transition shadow-sm shadow-sky-500/20">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        {% if rubrica %}Salvar Alterações{% else %}Criar Rubrica{% endif %}
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{% block extra_scripts %}
+<script>
+function rubricaForm() {
+  return {
+    estrategia: '{{ rubrica.estrategia_calculo|default:"MANUAL" }}',
+  };
+}
+</script>
+{% endblock %}
+{% endblock %}

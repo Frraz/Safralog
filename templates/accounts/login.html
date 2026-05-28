@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block public_content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-sky-50 p-4">
+  <div class="w-full max-w-sm">
+
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-14 h-14 bg-sky-500 rounded-2xl shadow-lg shadow-sky-500/25 mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-slate-900">Sistema RH</h1>
+      <p class="text-slate-500 text-sm mt-1">Gestão de pessoas e folha de pagamento</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200 p-7">
+      <h2 class="text-base font-semibold text-slate-800 mb-5">Acesse sua conta</h2>
+
+      <!-- Erros gerais -->
+      {% if form.non_field_errors %}
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+        <svg class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <p class="text-sm text-red-700">{{ form.non_field_errors.0 }}</p>
+      </div>
+      {% endif %}
+
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+
+        <!-- Usuário -->
+        <div>
+          <label for="{{ form.username.id_for_label }}"
+            class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Usuário
+          </label>
+          <input
+            type="text"
+            id="{{ form.username.id_for_label }}"
+            name="{{ form.username.html_name }}"
+            value="{{ form.username.value|default:'' }}"
+            autocomplete="username"
+            autofocus
+            placeholder="Seu usuário"
+            class="w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800
+              {% if form.username.errors %}border-red-400 bg-red-50 focus:ring-red-500 focus:border-red-400
+              {% else %}border-slate-200 focus:ring-sky-500 focus:border-sky-500{% endif %}
+              focus:ring-2 outline-none transition placeholder-slate-300">
+          {% if form.username.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.username.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Senha -->
+        <div>
+          <label for="{{ form.password.id_for_label }}"
+            class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Senha
+          </label>
+          <input
+            type="password"
+            id="{{ form.password.id_for_label }}"
+            name="{{ form.password.html_name }}"
+            autocomplete="current-password"
+            placeholder="Sua senha"
+            class="w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800
+              {% if form.password.errors %}border-red-400 bg-red-50 focus:ring-red-500 focus:border-red-400
+              {% else %}border-slate-200 focus:ring-sky-500 focus:border-sky-500{% endif %}
+              focus:ring-2 outline-none transition placeholder-slate-300">
+          {% if form.password.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.password.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <button type="submit"
+          class="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-600 active:bg-sky-700
+                 text-white text-sm font-bold rounded-lg transition
+                 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2
+                 shadow-sm shadow-sky-500/25 mt-2">
+          Entrar
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center text-xs text-slate-400 mt-6">
+      Sistema RH &copy; {% now "Y" %}
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+# ──────────────────────────────────────────────
+# PYTEST
+# ──────────────────────────────────────────────
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.testing"
+python_files           = ["test_*.py", "*_test.py"]
+python_classes         = ["Test*"]
+python_functions       = ["test_*"]
+testpaths              = ["tests", "apps"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "--reuse-db",
+    "-q",
+    "-p", "no:cacheprovider",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests",
+]
+
+# ──────────────────────────────────────────────
+# RUFF
+# ──────────────────────────────────────────────
+[tool.ruff]
+target-version = "py312"
+line-length    = 100
+fix            = true
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "DJ",   # flake8-django
+    "N",    # pep8-naming
+    "RUF",  # ruff-specific rules
+]
+ignore = [
+    "E501",    # line too long (handled by formatter)
+    "B008",    # function calls in default args
+    "B905",    # zip() without explicit strict
+    "N805",    # first argument should be named self
+    "RUF012",  # mutable class attributes
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*.py" = ["E501", "F401"]
+"*/settings/*.py"   = ["F401", "F403", "F405"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+known-third-party = ["django", "celery", "rest_framework"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.format]
+quote-style               = "double"
+indent-style              = "space"
+skip-magic-trailing-comma = false
+
+# ──────────────────────────────────────────────
+# MYPY
+# ──────────────────────────────────────────────
+[tool.mypy]
+python_version        = "3.12"
+check_untyped_defs    = true
+ignore_missing_imports = true
+warn_unused_ignores   = true
+warn_redundant_casts  = true
+plugins               = ["mypy_django_plugin.main"]
+
+[[tool.mypy.overrides]]
+module        = "*.migrations.*"
+ignore_errors = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.testing"
+
+# ──────────────────────────────────────────────
+# COVERAGE
+# ──────────────────────────────────────────────
+[tool.coverage.run]
+# data_file em /tmp — container não tem permissão de escrita em /app/
+data_file = "/tmp/.coverage"
+source    = ["apps"]
+branch    = true
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__init__.py",
+    "*/admin.py",
+    "manage.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+# Meta progressiva — ajustar para 60 quando make test-coverage confirmar atingido
+fail_under   = 40
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+]
+
+[tool.coverage.html]
+directory = "/tmp/htmlcov"
+title     = "SafraLog — Cobertura de Testes"

@@ -1,0 +1,61 @@
+<div id="entries-section" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+    <h2 class="text-sm font-semibold text-slate-700">Lançamentos</h2>
+    <div class="flex items-center gap-3 text-xs text-slate-400">
+      <span class="inline-flex items-center gap-1">
+        <span class="w-2 h-2 rounded-sm bg-emerald-400"></span> Provento
+      </span>
+      <span class="inline-flex items-center gap-1">
+        <span class="w-2 h-2 rounded-sm bg-red-400"></span> Desconto
+      </span>
+      <span class="inline-flex items-center gap-1">
+        <span class="w-2 h-2 rounded-sm bg-slate-300"></span> Encargo
+      </span>
+    </div>
+  </div>
+
+  {% if entries %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="bg-slate-50 border-b border-slate-100">
+          <th class="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide w-16">Cód.</th>
+          <th class="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Descrição</th>
+          <th class="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Referência</th>
+          <th class="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Valor</th>
+          <th class="text-center px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Origem</th>
+          {% if not payroll.is_fechada %}
+          <th class="px-4 py-2.5 w-10"></th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for entry in entries %}
+        {% include "payroll/partials/entry_row.html" %}
+        {% endfor %}
+      </tbody>
+      <tfoot class="bg-slate-50 border-t-2 border-slate-200">
+        <tr>
+          <td colspan="{% if payroll.is_fechada %}3{% else %}4{% endif %}" class="px-4 py-2.5 text-xs font-semibold text-slate-500 text-right">Total Proventos</td>
+          <td class="px-4 py-2.5 text-right font-bold text-emerald-700">R$ {{ payroll.total_proventos|floatformat:2 }}</td>
+          <td colspan="2"></td>
+        </tr>
+        <tr>
+          <td colspan="{% if payroll.is_fechada %}3{% else %}4{% endif %}" class="px-4 py-2 text-xs font-semibold text-slate-500 text-right">Total Descontos</td>
+          <td class="px-4 py-2 text-right font-bold text-red-600">- R$ {{ payroll.total_descontos|floatformat:2 }}</td>
+          <td colspan="2"></td>
+        </tr>
+        <tr class="border-t border-slate-200">
+          <td colspan="{% if payroll.is_fechada %}3{% else %}4{% endif %}" class="px-4 py-3 text-sm font-bold text-slate-700 text-right">TOTAL LÍQUIDO</td>
+          <td class="px-4 py-3 text-right text-base font-bold text-sky-700">R$ {{ payroll.total_liquido|floatformat:2 }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <div class="py-12 text-center">
+    <p class="text-sm text-slate-500">Nenhum lançamento. Clique em "Recalcular" para gerar a folha.</p>
+  </div>
+  {% endif %}
+</div>

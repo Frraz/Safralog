@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% block title %}{{ person.name }}{% endblock %}
+{% block mobile_title %}{{ person.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Cabeçalho -->
+  <div class="flex items-start justify-between gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      <a href="{% url 'employees:list' %}"
+        class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition flex-shrink-0">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <div class="min-w-0">
+        <h1 class="text-xl font-bold text-slate-900 truncate">{{ person.name }}</h1>
+        <p class="text-sm text-slate-400 mt-0.5">
+          {{ person.get_person_type_display }} &middot; {{ person.job_role.name }} &middot; {{ person.entity.name }}
+        </p>
+      </div>
+    </div>
+    <a href="{% url 'employees:update' person.pk %}"
+      class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition flex-shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+      </svg>
+      Editar
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    <!-- Coluna principal -->
+    <div class="lg:col-span-2 space-y-5">
+
+      <!-- Dados pessoais -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+          <svg class="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+          <h2 class="text-sm font-semibold text-slate-700">Dados pessoais</h2>
+        </div>
+        <dl class="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">CPF</dt>
+            <dd class="text-sm text-slate-700 font-mono">{{ person.cpf|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">RG</dt>
+            <dd class="text-sm text-slate-700">{{ person.rg|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Nascimento</dt>
+            <dd class="text-sm text-slate-700">{{ person.birth_date|date:"d/m/Y"|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Estado civil</dt>
+            <dd class="text-sm text-slate-700">{{ person.get_marital_status_display|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Telefone</dt>
+            <dd class="text-sm text-slate-700">{{ person.phone|default:"—" }}</dd>
+          </div>
+          <div class="col-span-2 sm:col-span-3">
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Endereço</dt>
+            <dd class="text-sm text-slate-700">{{ person.address|default:"—" }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Dados trabalhistas -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+          <svg class="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          <h2 class="text-sm font-semibold text-slate-700">Dados trabalhistas</h2>
+        </div>
+        <dl class="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Entidade</dt>
+            <dd class="text-sm font-semibold text-slate-900">{{ person.entity.name }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Fazenda</dt>
+            <dd class="text-sm text-slate-700">{{ person.farm.name }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Função</dt>
+            <dd class="text-sm text-slate-700">{{ person.job_role.name }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Admissão</dt>
+            <dd class="text-sm text-slate-700">{{ person.admission_date|date:"d/m/Y"|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">PIS/PASEP</dt>
+            <dd class="text-sm text-slate-700 font-mono">{{ person.pis|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">CTPS</dt>
+            <dd class="text-sm text-slate-700">{{ person.ctps|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">
+              {% if person.is_employee %}Salário mensal{% else %}Valor da diária{% endif %}
+            </dt>
+            <dd class="text-sm font-bold text-emerald-700">
+              R$ {% if person.is_employee %}{{ person.salary|floatformat:2|default:"—" }}{% else %}{{ person.daily_rate|floatformat:2|default:"—" }}{% endif %}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Dados bancários -->
+      {% if person.bank or person.bank_agency or person.bank_account %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+          <svg class="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+          </svg>
+          <h2 class="text-sm font-semibold text-slate-700">Dados bancários</h2>
+        </div>
+        <dl class="p-5 grid grid-cols-3 gap-4">
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Banco</dt>
+            <dd class="text-sm text-slate-700">{{ person.bank|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Agência</dt>
+            <dd class="text-sm text-slate-700">{{ person.bank_agency|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Conta</dt>
+            <dd class="text-sm text-slate-700">{{ person.bank_account|default:"—" }}</dd>
+          </div>
+        </dl>
+      </div>
+      {% endif %}
+
+      <!-- Descontos recentes -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-slate-700">Últimos descontos</h2>
+          <a href="{% url 'attendance:create' %}?person={{ person.pk }}"
+            class="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-800 transition">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+            </svg>
+            Novo ajuste
+          </a>
+        </div>
+        {% if recent_adjustments %}
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-100 bg-slate-50/70">
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Referência</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Tipo</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide hidden sm:table-cell">Descrição</th>
+              <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide">Valor</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            {% for adj in recent_adjustments %}
+            <tr>
+              <td class="px-4 py-2.5 text-slate-500 text-xs">{{ adj.reference_month|stringformat:"02d" }}/{{ adj.reference_year }}</td>
+              <td class="px-4 py-2.5">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+                  {% if adj.value < 0 %}bg-red-50 text-red-700 border border-red-200
+                  {% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+                  {{ adj.get_adjustment_type_display }}
+                </span>
+              </td>
+              <td class="px-4 py-2.5 text-slate-400 text-xs truncate max-w-xs hidden sm:table-cell">{{ adj.description }}</td>
+              <td class="px-4 py-2.5 text-right font-semibold {% if adj.value < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
+                R$ {{ adj.value|floatformat:2 }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="px-5 py-8 text-center text-sm text-slate-400">Nenhum ajuste registrado.</div>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- Coluna lateral -->
+    <div class="space-y-5">
+
+      <!-- Status e ações -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-400 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <span class="text-lg font-bold text-white">{{ person.name|first|upper }}</span>
+          </div>
+          <div>
+            <p class="font-semibold text-slate-900 text-sm">{{ person.name }}</p>
+            {% if person.is_active %}
+            <span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Ativo
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Inativo
+            </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <a href="{% url 'payroll:payslip_selector' person.pk %}"
+            class="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 transition text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            Gerar holerite
+          </a>
+          <a href="{% url 'attendance:create' %}?person={{ person.pk }}"
+            class="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 transition text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Registrar desconto
+          </a>
+          <a href="{% url 'attendance:installment_create' %}?person={{ person.pk }}"
+            class="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 transition text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Novo parcelamento
+          </a>
+          {% if person.is_active %}
+          <form method="post" action="{% url 'employees:deactivate' person.pk %}"
+            onsubmit="return confirm('Desativar {{ person.name }}? O colaborador não aparecerá nas listagens ativas.')">
+            {% csrf_token %}
+            <button type="submit"
+              class="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition text-sm font-medium">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+              </svg>
+              Desativar colaborador
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Resumo financeiro -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-3">Resumo financeiro</h3>
+        <div class="space-y-2.5 text-sm">
+          <div class="flex justify-between">
+            <span class="text-slate-500">Contrato</span>
+            <span class="font-semibold text-slate-900">{{ person.get_person_type_display }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">{% if person.is_employee %}Salário base{% else %}Diária{% endif %}</span>
+            <span class="font-bold text-emerald-700">
+              R$ {% if person.is_employee %}{{ person.salary|floatformat:2|default:"—" }}{% else %}{{ person.daily_rate|floatformat:2|default:"—" }}{% endif %}
+            </span>
+          </div>
+          {% if active_installments %}
+          <div class="flex justify-between pt-2 border-t border-slate-100">
+            <span class="text-slate-500">Parcelamentos ativos</span>
+            <span class="font-semibold text-red-600">{{ active_installments|length }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if person.notes %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-2">Observações</h3>
+        <p class="text-sm text-slate-600 leading-relaxed">{{ person.notes }}</p>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

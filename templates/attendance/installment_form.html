@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Novo Parcelamento{% endblock %}
+{% block mobile_title %}Novo parcelamento{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto space-y-5" x-data="{ total: 0, parcelas: 1 }">
+
+  <div class="flex items-center gap-3">
+    <a href="{% url 'attendance:installment_list' %}"
+      class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">Novo Desconto Parcelado</h1>
+      <p class="text-sm text-slate-400 mt-0.5">O sistema gerará automaticamente um desconto por mês</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <form method="post" class="divide-y divide-slate-100">
+      {% csrf_token %}
+      <div class="p-5 space-y-4">
+
+        {% if form.non_field_errors %}
+        <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+          {% for error in form.non_field_errors %}
+          <p class="text-sm text-red-700">{{ error }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Colaborador <span class="text-red-500">*</span>
+          </label>
+          <select name="person"
+            class="w-full px-3 py-2.5 rounded-lg border {% if form.person.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800 bg-white
+                   focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+            <option value="">Selecione o colaborador</option>
+            {% for p in form.person.field.queryset %}
+            <option value="{{ p.pk }}" {% if form.person.value|stringformat:"s" == p.pk|stringformat:"s" %}selected{% endif %}>
+              {{ p.name }}
+            </option>
+            {% endfor %}
+          </select>
+          {% if form.person.errors %}<p class="mt-1 text-xs text-red-600">{{ form.person.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Tipo <span class="text-red-500">*</span>
+          </label>
+          <select name="installment_type"
+            class="w-full px-3 py-2.5 rounded-lg border {% if form.installment_type.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800 bg-white
+                   focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+            {% for value, label in form.installment_type.field.choices %}
+            <option value="{{ value }}" {% if form.installment_type.value == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if form.installment_type.errors %}<p class="mt-1 text-xs text-red-600">{{ form.installment_type.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Descrição <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="description" value="{{ form.description.value|default:'' }}"
+            class="w-full px-3 py-2.5 rounded-lg border {% if form.description.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800
+                   focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+            placeholder="Ex: Adiantamento de salário, Vale compras...">
+          {% if form.description.errors %}<p class="mt-1 text-xs text-red-600">{{ form.description.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Valor total (R$) <span class="text-red-500">*</span>
+            </label>
+            <input type="number" name="total_value" step="0.01" min="0.01"
+              value="{{ form.total_value.value|default:'' }}"
+              @input="total = parseFloat($event.target.value) || 0"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.total_value.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="0,00">
+            {% if form.total_value.errors %}<p class="mt-1 text-xs text-red-600">{{ form.total_value.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Número de parcelas <span class="text-red-500">*</span>
+            </label>
+            <input type="number" name="num_installments" min="1" max="60"
+              value="{{ form.num_installments.value|default:'1' }}"
+              @input="parcelas = parseInt($event.target.value) || 1"
+              class="w-full px-3 py-2.5 rounded-lg border {% if form.num_installments.errors %}border-red-400 bg-red-50{% else %}border-slate-200{% endif %} text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"
+              placeholder="1">
+            {% if form.num_installments.errors %}<p class="mt-1 text-xs text-red-600">{{ form.num_installments.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <!-- Preview do valor por parcela -->
+        <div x-show="total > 0 && parcelas > 0"
+          class="flex items-center gap-2.5 p-3 bg-sky-50 border border-sky-200 rounded-lg">
+          <svg class="w-4 h-4 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-sm text-sky-800">
+            Valor por parcela:
+            <strong x-text="'R$ ' + (total / parcelas).toFixed(2).replace('.', ',')"></strong>
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Mês inicial <span class="text-red-500">*</span>
+            </label>
+            <select name="first_reference_month"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 bg-white
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+              <option value="1" {% if form.first_reference_month.value == 1 %}selected{% endif %}>Janeiro</option>
+              <option value="2" {% if form.first_reference_month.value == 2 %}selected{% endif %}>Fevereiro</option>
+              <option value="3" {% if form.first_reference_month.value == 3 %}selected{% endif %}>Março</option>
+              <option value="4" {% if form.first_reference_month.value == 4 %}selected{% endif %}>Abril</option>
+              <option value="5" {% if form.first_reference_month.value == 5 %}selected{% endif %}>Maio</option>
+              <option value="6" {% if form.first_reference_month.value == 6 %}selected{% endif %}>Junho</option>
+              <option value="7" {% if form.first_reference_month.value == 7 %}selected{% endif %}>Julho</option>
+              <option value="8" {% if form.first_reference_month.value == 8 %}selected{% endif %}>Agosto</option>
+              <option value="9" {% if form.first_reference_month.value == 9 %}selected{% endif %}>Setembro</option>
+              <option value="10" {% if form.first_reference_month.value == 10 %}selected{% endif %}>Outubro</option>
+              <option value="11" {% if form.first_reference_month.value == 11 %}selected{% endif %}>Novembro</option>
+              <option value="12" {% if form.first_reference_month.value == 12 %}selected{% endif %}>Dezembro</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Ano inicial <span class="text-red-500">*</span>
+            </label>
+            <input type="number" name="first_reference_year"
+              value="{{ form.first_reference_year.value|default:'' }}"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800
+                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder-slate-300"
+              placeholder="2025">
+          </div>
+        </div>
+
+      </div>
+      <div class="px-5 py-4 bg-slate-50/50 flex items-center justify-between">
+        <a href="{% url 'attendance:installment_list' %}"
+          class="text-sm font-medium text-slate-500 hover:text-slate-700 transition">Cancelar</a>
+        <button type="submit"
+          class="px-5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold rounded-xl transition shadow-sm shadow-sky-500/20">
+          Criar parcelamento
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

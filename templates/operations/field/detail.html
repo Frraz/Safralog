@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}{{ field.name }}{% endblock %}
+{% block nav_title %}{{ field.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+
+  <div class="flex items-center justify-between gap-3">
+    <p class="text-sm text-gray-500">
+      <a href="{% url 'operations:harvest-detail' pk=field.harvest.pk %}"
+         class="hover:text-green-600 transition-colors">{{ field.harvest.name }}</a>
+    </p>
+    <a href="{% url 'operations:field-update' pk=field.pk %}"
+       class="px-3 py-1.5 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+      Editar
+    </a>
+  </div>
+
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+    <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-800">
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Área</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+          {% if field.area_ha %}{{ field.area_ha|floatformat:1 }}<span class="text-sm font-normal text-gray-500 ml-1">ha</span>{% else %}—{% endif %}
+        </p>
+      </div>
+      <div class="px-4 py-4 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Romaneios</p>
+        <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ recent_waybills|length }}</p>
+        <p class="text-xs text-gray-400">recentes</p>
+      </div>
+    </div>
+    {% if field.location_description %}
+    <div class="px-4 py-3">
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Localização</p>
+      <p class="text-sm text-gray-700 dark:text-gray-300">{{ field.location_description }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if recent_waybills %}
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Romaneios Recentes</h2>
+    </div>
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
+      {% for wb in recent_waybills %}
+      <a href="{% url 'operations:waybill-detail' pk=wb.pk %}"
+         class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+        <span class="text-xs font-mono text-gray-400 w-12 shrink-0">#{{ wb.number|stringformat:"05d" }}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-700 dark:text-gray-300">{{ wb.driver.name }}</p>
+          <p class="text-xs text-gray-400">{{ wb.operation_date|date:"d/m/Y" }} · {{ wb.vehicle.plate }}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ wb.net_weight_tons|floatformat:2 }} t</p>
+          {% waybill_status_badge wb.status %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

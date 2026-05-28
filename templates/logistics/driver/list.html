@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block title %}Motoristas{% endblock %}
+{% block nav_title %}Motoristas{% endblock %}
+
+{% block quick_action %}
+<a href="{% url 'logistics:driver-create' %}"
+   class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+          bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+  Novo
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# Filtros #}
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 mb-4">
+  <form method="get"
+        hx-get="{% url 'logistics:driver-list' %}"
+        hx-target="#driver-list"
+        hx-trigger="keyup changed delay:400ms from:input, change from:select"
+        hx-push-url="true"
+        class="flex flex-wrap gap-3 p-3">
+    <div class="flex-1 min-w-40">
+      <input type="text" name="q" value="{{ request.GET.q }}"
+             placeholder="Buscar nome, CPF..."
+             class="input w-full text-sm" />
+    </div>
+    <select name="status" class="input text-sm">
+      <option value="">Todos os status</option>
+      {% for value, label in status_choices %}
+      <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+{# Lista #}
+<div id="driver-list">
+  <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+    {% for driver in drivers %}
+    <a href="{% url 'logistics:driver-detail' pk=driver.pk %}"
+       class="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+
+      {# Avatar #}
+      <div class="shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-700 dark:text-green-400 font-bold text-sm">
+        {% if driver.photo %}
+          <img src="{{ driver.photo.url }}" class="w-10 h-10 rounded-full object-cover" alt="">
+        {% else %}
+          {{ driver.name|initials }}
+        {% endif %}
+      </div>
+
+      {# Info #}
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ driver.name }}</p>
+          {% driver_status_badge driver.status %}
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {% if driver.document_cpf %}CPF {{ driver.document_cpf }}{% endif %}
+          {% if driver.phone %} · {{ driver.phone }}{% endif %}
+        </p>
+      </div>
+
+      {# Saldo #}
+      {% if driver.financial_account %}
+      <div class="shrink-0 text-right">
+        <p class="text-xs text-gray-400 dark:text-gray-500">Saldo</p>
+        <p class="text-sm font-semibold
+                  {% if driver.financial_account.current_balance >= 0 %}text-green-600 dark:text-green-400
+                  {% else %}text-red-600 dark:text-red-400{% endif %}">
+          {{ driver.financial_account.current_balance|currency_br }}
+        </p>
+      </div>
+      {% endif %}
+
+      <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+    {% empty %}
+    <div class="px-4 py-12 text-center">
+      <p class="text-sm text-gray-400">Nenhum motorista encontrado.</p>
+      <a href="{% url 'logistics:driver-create' %}"
+         class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+                bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+        Cadastrar motorista
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
