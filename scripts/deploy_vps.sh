@@ -139,7 +139,7 @@ ok "Migrations aplicadas"
 # =============================================================================
 info "Coletando arquivos estáticos"
 
-$DC exec -T django python manage.py collectstatic --noinput --clear
+$DC exec -T django python manage.py collectstatic --noinput
 
 ok "Estáticos coletados em $DEPLOY_DIR/static_collected/"
 

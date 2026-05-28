@@ -175,7 +175,6 @@ CACHES = {
         "LOCATION": env("CACHE_URL", default="redis://redis:6379/3"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PARSER_CLASS": "redis.connection.HiredisParser",
             "CONNECTION_POOL_KWARGS": {"max_connections": 50},
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
         },
