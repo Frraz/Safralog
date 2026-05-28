@@ -1,25 +1,33 @@
 {% load static core_tags %}
-<!doctype html>
-<html lang="pt-BR" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', sidebarOpen: false }"
-      :class="darkMode ? 'dark' : ''" class="h-full">
+<!DOCTYPE html>
+<html lang="pt-BR"
+      class="h-full"
+      x-data="{ sidebarOpen: false, darkMode: localStorage.getItem('darkMode') === 'true' }"
+      :class="{ 'dark': darkMode }">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="csrf-token" content="{{ csrf_token }}" />
+  <meta name="theme-color" content="#15803d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
   <title>{% block title %}SafraLog{% endblock %} — SafraLog</title>
 
   {# CSS — TailwindCSS compilado localmente (npm run build) #}
   <link rel="stylesheet" href="{% static 'css/dist/main.css' %}" />
+  <link rel="icon" type="image/png" href="{% static 'img/logo-safralog.png' %}" />
+  <link rel="apple-touch-icon" href="{% static 'img/logo-safralog.png' %}" />
 
-  {# HTMX — bundle local (npm run build copia para static/js/vendor/) #}
+  {# HTMX + Alpine — bundles locais (sem CDN, funciona offline/rural) #}
   <script src="{% static 'js/vendor/htmx.min.js' %}" defer></script>
-  {# Alpine.js — bundle local #}
-  <script defer src="{% static 'js/vendor/alpine.min.js' %}"></script>
+  <script src="{% static 'js/vendor/alpine.min.js' %}" defer></script>
 
   <style>
     [x-cloak] { display: none !important; }
 
-    /* ── Sidebar navigation ───────────────────────────────────── */
+    /* ── Sidebar navigation ─────────────────────────────────── */
     .nav-link {
       display: flex; align-items: center; gap: 0.625rem;
       padding: 0.375rem 0.625rem; border-radius: 0.375rem;
@@ -27,42 +35,19 @@
       color: #94a3b8; transition: background 0.12s, color 0.12s; line-height: 1.3;
     }
     .nav-link:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
-    .nav-link.active { background: rgba(22,163,74,0.15); color: #4ade80; }
+    .nav-link.active { background: rgba(22,163,74,0.18); color: #4ade80; }
     .nav-link svg { flex-shrink: 0; width: 0.9375rem; height: 0.9375rem; opacity: 0.8; }
     .nav-link.active svg { opacity: 1; }
     .nav-link.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
     .nav-section {
-      padding: 0.5rem 0.625rem 0.25rem; font-size: 0.625rem;
-      font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-      color: #475569; margin-top: 0.75rem;
+      padding: 0.5rem 0.625rem 0.25rem;
+      font-size: 0.625rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #475569; margin-top: 0.75rem;
     }
     .nav-section:first-child { margin-top: 0; }
 
-    .nav-group-btn {
-      display: flex; align-items: center; justify-content: space-between;
-      width: 100%; padding: 0.375rem 0.625rem; border-radius: 0.375rem;
-      font-size: 0.8125rem; font-weight: 500; color: #94a3b8;
-      background: none; border: none; cursor: pointer;
-      transition: background 0.12s, color 0.12s;
-    }
-    .nav-group-btn:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
-    .nav-group-btn .btn-inner { display: flex; align-items: center; gap: 0.625rem; }
-    .nav-group-btn svg.icon { width: 0.9375rem; height: 0.9375rem; opacity: 0.8; flex-shrink: 0; }
-    .nav-group-btn svg.chevron { width: 0.625rem; height: 0.625rem; transition: transform 0.2s; }
-
-    /* ── HTMX loading bar ─────────────────────────────────────── */
-    #htmx-loading-bar {
-      position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 9999;
-      background: linear-gradient(90deg, #16a34a, #4ade80);
-      transform: scaleX(0); transform-origin: left;
-      transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0;
-    }
-    #htmx-loading-bar.htmx-request { transform: scaleX(0.7); opacity: 1; }
-    .htmx-settling #htmx-loading-bar { transform: scaleX(1); }
-    .htmx-swapping #htmx-loading-bar { opacity: 0; }
-
-    /* ── Form inputs ──────────────────────────────────────────── */
+    /* ── Form inputs globais ────────────────────────────────── */
     .input {
       display: block; width: 100%; padding: 0.4rem 0.625rem;
       border: 1px solid #e5e7eb; border-radius: 0.375rem; font-size: 0.875rem;
@@ -77,367 +62,490 @@
     }
     .dark .label { color: #d1d5db; }
 
-    /* ── Sidebar scrollbar ────────────────────────────────────── */
+    /* ── HTMX loading bar ───────────────────────────────────── */
+    #htmx-loading-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 9999;
+      background: linear-gradient(90deg, #16a34a, #4ade80, #16a34a);
+      background-size: 200% 100%;
+      transform: scaleX(0); transform-origin: left;
+      transition: transform 0.4s ease, opacity 0.3s ease; opacity: 0;
+    }
+    #htmx-loading-bar.htmx-request {
+      transform: scaleX(0.7); opacity: 1;
+      animation: slide-gradient 1.2s linear infinite;
+    }
+    .htmx-settling #htmx-loading-bar { transform: scaleX(1); }
+    .htmx-swapping #htmx-loading-bar { opacity: 0; }
+    @keyframes slide-gradient {
+      0% { background-position: 200% 0; }
+      100% { background-position: 0% 0; }
+    }
+
+    /* ── Toast animations ───────────────────────────────────── */
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateX(16px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes toast-out {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(16px); }
+    }
+
+    /* ── Sidebar scrollbar ──────────────────────────────────── */
     nav::-webkit-scrollbar { width: 3px; }
     nav::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
+
+    /* ── Fade-in animation (command palette, modals) ─────────── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn .2s ease forwards; }
+
+    /* ── Ping animation para badges pulsantes ────────────────── */
+    @keyframes ping {
+      75%, 100% { transform: scale(2); opacity: 0; }
+    }
+    .animate-ping { animation: ping 1s cubic-bezier(0, 0, .2, 1) infinite; }
   </style>
 
   {% block extra_head %}{% endblock %}
 </head>
 
-<body class="h-full bg-gray-50 dark:bg-gray-950">
-  <div id="htmx-loading-bar"></div>
+{# hx-headers: injeta CSRF em todos os requests HTMX automaticamente #}
+<body class="h-full bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
-  {% if user.is_authenticated %}
-  <div class="flex h-full">
+<div id="htmx-loading-bar"></div>
 
-    {# ── Mobile overlay ──────────────────────────────────────── #}
-    <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
-         class="fixed inset-0 z-20 bg-black/60 backdrop-blur-sm lg:hidden"
-         x-transition:enter="transition-opacity duration-200"
-         x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-         x-transition:leave="transition-opacity duration-150"
-         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-    </div>
+<div class="flex h-full overflow-hidden">
 
-    {# ── Sidebar ─────────────────────────────────────────────── #}
-    <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-           class="fixed inset-y-0 left-0 z-30 w-56 bg-slate-900 border-r border-slate-800/60
-                  flex flex-col transition-transform duration-200 ease-in-out
-                  lg:relative lg:translate-x-0 lg:flex-shrink-0">
-
-      {# Logo #}
-      <div class="flex items-center gap-2.5 px-3.5 py-4 border-b border-slate-800/60 flex-shrink-0">
-        <div class="w-7 h-7 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-600/30">
-          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-          </svg>
-        </div>
-        <div class="min-w-0">
-          <p class="text-sm font-bold text-white leading-tight">SafraLog</p>
-          <p class="text-xs text-slate-500">Gestão de Fretes</p>
-        </div>
-      </div>
-
-      {# Safra ativa (badge) #}
-      {% if active_harvest %}
-      <div class="mx-2.5 mt-2 px-2.5 py-1.5 rounded-md bg-green-900/30 border border-green-800/40">
-        <p class="text-xs text-green-400 font-medium truncate">
-          <span class="opacity-60">Safra:</span> {{ active_harvest.name }}
-        </p>
-      </div>
-      {% endif %}
-
-      {# Navigation #}
-      <nav class="flex-1 px-2 py-2 overflow-y-auto space-y-0.5">
-
-        <a href="{% url 'dashboard:index' %}"
-           class="nav-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
-          </svg>
-          Dashboard
-        </a>
-
-        {# OPERAÇÕES #}
-        <p class="nav-section">Operações</p>
-
-        <a href="{% url 'operations:waybill-list' %}"
-           class="nav-link {% if 'romaneios' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
-          Romaneios
-        </a>
-
-        <a href="{% url 'operations:harvest-list' %}"
-           class="nav-link {% if 'safras' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
-          </svg>
-          Safras
-        </a>
-
-        <a href="{% url 'operations:field-list' %}"
-           class="nav-link {% if 'talhoes' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-          </svg>
-          Talhões
-        </a>
-
-        <a href="{% url 'operations:region-list' %}"
-           class="nav-link {% if 'regioes' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
-          </svg>
-          Regiões e Preços
-        </a>
-
-        {# LOGÍSTICA #}
-        <p class="nav-section">Logística</p>
-
-        <a href="{% url 'logistics:driver-list' %}"
-           class="nav-link {% if 'motoristas' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-          </svg>
-          Motoristas
-        </a>
-
-        <a href="{% url 'logistics:proprietario-list' %}"
-           class="nav-link {% if 'proprietarios' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-          </svg>
-          Proprietários
-        </a>
-
-        <a href="{% url 'logistics:vehicle-list' %}"
-           class="nav-link {% if 'veiculos' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-          </svg>
-          Veículos
-        </a>
-
-        <a href="{% url 'logistics:fueling-list' %}"
-           class="nav-link {% if 'abastecimentos' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M13 10V3L4 14h7v7l9-11h-7z"/>
-          </svg>
-          Abastecimentos
-        </a>
-
-        {# FINANCEIRO #}
-        <p class="nav-section">Financeiro</p>
-
-        <a href="{% url 'finance:advance-list' %}"
-           class="nav-link {% if 'adiantamentos' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-          </svg>
-          Adiantamentos
-        </a>
-
-        <a href="{% url 'finance:settlement-list' %}"
-           class="nav-link {% if 'acertos' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-          </svg>
-          Fechamentos (Acertos)
-        </a>
-
-        {# RELATÓRIOS #}
-        <p class="nav-section">Relatórios</p>
-
-        <a href="{% url 'reports:waybill-export' %}"
-           class="nav-link {% if 'relatorios' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-          </svg>
-          Exportar Romaneios
-        </a>
-
-        <a href="{% url 'reports:index' %}"
-           class="nav-link {% if 'relatorios' in request.path and 'exportar' not in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-          </svg>
-          Relatórios
-        </a>
-
-        {# ADMIN #}
-        {% if user.role == 'admin' or user.is_staff %}
-        <p class="nav-section">Configurações</p>
-
-        <a href="{% url 'accounts:profile' %}"
-           class="nav-link {% if 'perfil' in request.path %}active{% endif %}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          Meu Perfil
-        </a>
-
-        <a href="{% url 'admin:index' %}"
-           class="nav-link" target="_blank" rel="noopener">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-          Admin Django
-        </a>
-        {% endif %}
-
-      </nav>
-
-      {# User footer #}
-      <div class="flex-shrink-0 px-2.5 py-3 border-t border-slate-800/60">
-        <div class="flex items-center gap-2.5">
-          <div class="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
-            <span class="text-xs font-bold text-white">
-              {% if user.first_name %}{{ user.first_name|first|upper }}{% else %}{{ user.email|first|upper }}{% endif %}
-            </span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-slate-200 truncate leading-tight">
-              {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.email }}{% endif %}
-            </p>
-            <p class="text-xs text-slate-500 truncate">
-              {% if current_tenant %}{{ current_tenant.name }}{% else %}SafraLog{% endif %}
-            </p>
-          </div>
-          <div class="flex items-center gap-1 flex-shrink-0">
-            {# Notificações #}
-            <a href="{% url 'notifications:list' %}" title="Notificações"
-               class="relative p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-              </svg>
-              {% if unread_notifications_count %}
-              <span class="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full flex items-center justify-center text-white"
-                    style="font-size: 0.55rem; font-weight: 700;">
-                {{ unread_notifications_count|default:"" }}
-              </span>
-              {% endif %}
-            </a>
-            {# Dark mode #}
-            <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
-                    title="Alternar modo escuro"
-                    class="p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition">
-              <svg x-show="!darkMode" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-              </svg>
-              <svg x-show="darkMode" x-cloak class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-              </svg>
-            </button>
-            {# Logout #}
-            <form method="post" action="{% url 'account_logout' %}">
-              {% csrf_token %}
-              <button type="submit" title="Sair"
-                      class="p-1.5 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-800 transition">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                </svg>
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </aside>
-
-    {# ── Main content ────────────────────────────────────────── #}
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-      {# Mobile topbar #}
-      <header class="lg:hidden flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900
-                     border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10 shadow-sm flex-shrink-0">
-        <button @click="sidebarOpen = true"
-                class="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-        </button>
-        <div class="w-6 h-6 bg-green-600 rounded-md flex items-center justify-center flex-shrink-0">
-          <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-          </svg>
-        </div>
-        <span class="text-sm font-semibold text-gray-800 dark:text-white truncate flex-1">
-          {% block mobile_title %}SafraLog{% endblock %}
-        </span>
-      </header>
-
-      {# Page header — nav_title + quick_action (ambos responsivos) #}
-      <div class="flex items-center justify-between px-4 sm:px-6 pt-4 pb-2 flex-shrink-0">
-        <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
-          {% block nav_title %}{% endblock %}
-        </h1>
-        <div class="flex items-center gap-2">
-          {% block quick_action %}{% endblock %}
-        </div>
-      </div>
-
-      {# Main scroll area #}
-      <main class="flex-1 overflow-y-auto">
-        <div class="px-4 pb-6 sm:px-6 max-w-7xl mx-auto w-full">
-          {% include "partials/messages.html" %}
-          {% block content %}{% endblock %}
-        </div>
-      </main>
-
-    </div>
+  {# ── Mobile overlay (clica fora fecha sidebar) ───────────── #}
+  <div x-show="sidebarOpen" x-cloak
+       x-transition:enter="transition-opacity ease-linear duration-200"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition-opacity ease-linear duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0"
+       @click="sidebarOpen = false"
+       class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-20 lg:hidden"
+       style="display:none">
   </div>
 
-  {% else %}
-  {# Unauthenticated layout #}
-  <div class="min-h-full">
-    {% block public_content %}{% endblock %}
-    {% if not block.super %}
-    <div class="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
-      {% block content %}{% endblock %}
+  {# ── Sidebar ─────────────────────────────────────────────── #}
+  <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+         class="fixed inset-y-0 left-0 z-30 w-56 bg-slate-900 border-r border-slate-800/60
+                flex flex-col transition-transform duration-200 ease-in-out
+                lg:relative lg:translate-x-0 lg:flex-shrink-0">
+
+    {# Logo #}
+    <div class="flex items-center gap-2.5 px-3.5 py-4 border-b border-slate-800/60 flex-shrink-0">
+      <div class="w-7 h-7 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0
+                  shadow-lg shadow-green-600/30">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+        </svg>
+      </div>
+      <div class="min-w-0">
+        <p class="text-sm font-bold text-white leading-tight">SafraLog</p>
+        <p class="text-xs text-slate-500">Gestão de Fretes</p>
+      </div>
+    </div>
+
+    {# Safra ativa badge #}
+    {% if active_harvest %}
+    <div class="mx-2.5 mt-2 px-2.5 py-1.5 rounded-md bg-green-900/30 border border-green-800/40">
+      <p class="text-xs text-green-400 font-medium truncate">
+        <span class="opacity-60">Safra:</span> {{ active_harvest.name }}
+      </p>
     </div>
     {% endif %}
-  </div>
-  {% endif %}
 
-  {# ── Global toast system ─────────────────────────────────── #}
-  <div id="toast-container"
-       x-data="{
-         toasts: [],
-         addToast(msg, type='info') {
-           const id = Date.now();
-           this.toasts.push({ id, msg, type });
-           setTimeout(() => this.toasts = this.toasts.filter(t => t.id !== id), 4000);
-         }
-       }"
-       @show-toast.window="addToast($event.detail.message, $event.detail.type)"
-       class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"
-       style="max-width: 320px;">
-    <template x-for="toast in toasts" :key="toast.id">
-      <div x-show="true"
-           x-transition:enter="transition ease-out duration-200"
-           x-transition:enter-start="opacity-0 translate-y-2"
-           x-transition:enter-end="opacity-100 translate-y-0"
-           :class="{
-             'bg-green-600': toast.type === 'success',
-             'bg-red-600': toast.type === 'error',
-             'bg-yellow-500': toast.type === 'warning',
-             'bg-blue-600': toast.type === 'info'
-           }"
-           class="pointer-events-auto flex items-center gap-2 px-3 py-2.5 rounded-lg shadow-lg text-white text-sm">
-        <span x-text="toast.msg" class="flex-1"></span>
-        <button @click="toasts = toasts.filter(t => t.id !== toast.id)"
-                class="opacity-70 hover:opacity-100 transition flex-shrink-0">✕</button>
+    {# Navigation #}
+    <nav class="flex-1 px-2 py-2 overflow-y-auto space-y-0.5">
+
+      <a href="{% url 'dashboard:index' %}"
+         class="nav-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+        </svg>
+        Dashboard
+      </a>
+
+      {# OPERAÇÕES #}
+      <p class="nav-section">Operações</p>
+
+      <a href="{% url 'operations:waybill-list' %}"
+         class="nav-link {% if 'romaneios' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Romaneios
+      </a>
+
+      <a href="{% url 'operations:harvest-list' %}"
+         class="nav-link {% if 'safras' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+        </svg>
+        Safras
+      </a>
+
+      <a href="{% url 'operations:field-list' %}"
+         class="nav-link {% if 'talhoes' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+        </svg>
+        Talhões
+      </a>
+
+      <a href="{% url 'operations:region-list' %}"
+         class="nav-link {% if 'regioes' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+        </svg>
+        Regiões e Preços
+      </a>
+
+      {# LOGÍSTICA #}
+      <p class="nav-section">Logística</p>
+
+      <a href="{% url 'logistics:driver-list' %}"
+         class="nav-link {% if 'motoristas' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+        Motoristas
+      </a>
+
+      <a href="{% url 'logistics:proprietario-list' %}"
+         class="nav-link {% if 'proprietarios' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+        Proprietários
+      </a>
+
+      <a href="{% url 'logistics:vehicle-list' %}"
+         class="nav-link {% if 'veiculos' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+        </svg>
+        Veículos
+      </a>
+
+      <a href="{% url 'logistics:fueling-list' %}"
+         class="nav-link {% if 'abastecimentos' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Abastecimentos
+      </a>
+
+      {# FINANCEIRO #}
+      <p class="nav-section">Financeiro</p>
+
+      <a href="{% url 'finance:advance-list' %}"
+         class="nav-link {% if 'adiantamentos' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        Adiantamentos
+      </a>
+
+      <a href="{% url 'finance:settlement-list' %}"
+         class="nav-link {% if 'acertos' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+        Fechamentos
+      </a>
+
+      {# RELATÓRIOS #}
+      <p class="nav-section">Relatórios</p>
+
+      <a href="{% url 'reports:waybill-export' %}"
+         class="nav-link {% if 'relatorios' in request.path and 'exportar' in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Exportar Romaneios
+      </a>
+
+      <a href="{% url 'reports:index' %}"
+         class="nav-link {% if 'relatorios' in request.path and 'exportar' not in request.path %}active{% endif %}">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+        Relatórios
+      </a>
+
+      {# CONFIGURAÇÕES (admin) #}
+      {% if user.role == 'admin' or user.is_staff %}
+      <p class="nav-section">Configurações</p>
+
+      <a href="{% url 'admin:index' %}"
+         class="nav-link" target="_blank" rel="noopener">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Admin Django
+      </a>
+      {% endif %}
+
+    </nav>
+
+    {# User footer #}
+    <div class="flex-shrink-0 px-2.5 py-3 border-t border-slate-800/60">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0 shadow">
+          <span class="text-xs font-bold text-white leading-none">
+            {% if user.first_name %}{{ user.first_name|first|upper }}{% else %}{{ user.email|first|upper }}{% endif %}
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-semibold text-slate-200 truncate leading-tight">
+            {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.email }}{% endif %}
+          </p>
+          <p class="text-xs text-slate-500 truncate">
+            {% if current_tenant %}{{ current_tenant.name }}{% else %}SafraLog{% endif %}
+          </p>
+        </div>
+        <div class="flex items-center gap-1 flex-shrink-0">
+          {# Dark mode toggle #}
+          <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
+                  :title="darkMode ? 'Modo claro' : 'Modo escuro'"
+                  class="p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition">
+            <svg x-show="!darkMode" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+            <svg x-show="darkMode" x-cloak class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+          </button>
+          {# Logout #}
+          <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <button type="submit" title="Sair"
+                    class="p-1.5 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-800 transition">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+            </button>
+          </form>
+        </div>
       </div>
-    </template>
-  </div>
+    </div>
+  </aside>
 
-  {# ── Scripts ──────────────────────────────────────────────── #}
-  <script src="{% static 'js/main.js' %}"></script>
-  {% block extra_scripts %}{% endblock %}
+  {# ── Área principal ────────────────────────────────────── #}
+  <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+    {# Header #}
+    <header class="shrink-0 h-14 flex items-center gap-3 px-4 sm:px-6
+                   bg-white dark:bg-gray-900
+                   border-b border-gray-200 dark:border-gray-800 z-10">
+
+      {# Hamburger (mobile) #}
+      <button @click="sidebarOpen = true"
+              class="lg:hidden p-1.5 rounded-lg text-gray-500
+                     hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+                     hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Abrir menu">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+
+      {# Título da página #}
+      <div class="flex-1 min-w-0">
+        <h1 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+          {% block nav_title %}{% endblock %}
+        </h1>
+      </div>
+
+      {# Ação principal (botão "Novo", "Gerar PDF", etc.) #}
+      {% block quick_action %}{% endblock %}
+
+      {# Notificações + Dark mode #}
+      <div class="flex items-center gap-0.5 shrink-0">
+
+        {# Notificações com HTMX lazy loading #}
+        <div class="relative" x-data="{ open: false }">
+          <button @click="open = !open"
+                  hx-get="{% url 'notifications:dropdown' %}"
+                  hx-trigger="click once"
+                  hx-target="#notif-dropdown-content"
+                  class="relative p-2 rounded-lg text-gray-500
+                         hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+                         hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  aria-label="Notificações">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11
+                   a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341
+                   C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436
+                   L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            {% if unread_notifications_count %}
+            <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full
+                         ring-2 ring-white dark:ring-gray-900"></span>
+            {% endif %}
+          </button>
+
+          <div x-show="open" x-cloak
+               @click.outside="open = false"
+               x-transition:enter="transition ease-out duration-100"
+               x-transition:enter-start="opacity-0 scale-95"
+               x-transition:enter-end="opacity-100 scale-100"
+               x-transition:leave="transition ease-in duration-75"
+               x-transition:leave-start="opacity-100 scale-100"
+               x-transition:leave-end="opacity-0 scale-95"
+               class="absolute right-0 top-full mt-1 w-80
+                      bg-white dark:bg-gray-900
+                      rounded-xl border border-gray-200 dark:border-gray-800
+                      shadow-xl z-50 overflow-hidden fade-in">
+
+            <div class="flex items-center justify-between px-4 py-2.5
+                        border-b border-gray-100 dark:border-gray-800">
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white">Notificações</p>
+                {% if unread_notifications_count %}
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold
+                             bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                  {{ unread_notifications_count }}
+                </span>
+                {% endif %}
+              </div>
+              <a href="{% url 'notifications:list' %}"
+                 class="text-xs text-green-600 hover:text-green-700 dark:text-green-400 font-medium">
+                Ver todas →
+              </a>
+            </div>
+
+            <div id="notif-dropdown-content" class="max-h-80 overflow-y-auto">
+              <div class="px-4 py-6 text-center">
+                <div class="w-4 h-4 border-2 border-green-500 border-t-transparent
+                            rounded-full animate-spin mx-auto mb-2"></div>
+                <p class="text-xs text-gray-400">Carregando...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# Dark mode toggle #}
+        <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
+                :title="darkMode ? 'Modo claro' : 'Modo escuro'"
+                class="p-2 rounded-lg text-gray-500
+                       hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+                       hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <svg x-show="!darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:block">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+          <svg x-show="darkMode" x-cloak class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+        </button>
+
+      </div>
+    </header>
+
+    {# Flash messages #}
+    {% include "partials/messages.html" %}
+
+    {# Conteúdo principal #}
+    <main id="main-content" class="flex-1 overflow-y-auto">
+      <div class="px-4 py-5 sm:px-6 max-w-screen-2xl mx-auto w-full">
+        {% block breadcrumb %}{% endblock %}
+        {% block page_header %}{% endblock %}
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+
+  </div>
+</div>
+
+{# ── Modal container (destino para hx-target de modals HTMX) ── #}
+<div id="modal-container"></div>
+
+{# ── Toast system (Alpine.js) ──────────────────────────────── #}
+<div id="toast-container"
+     x-data="{
+       toasts: [],
+       addToast(msg, type = 'info') {
+         const id = Date.now();
+         this.toasts.push({ id, msg, type });
+         setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 4500);
+       }
+     }"
+     @show-toast.window="addToast($event.detail.message, $event.detail.type)"
+     class="fixed bottom-4 right-4 z-[60] space-y-2 pointer-events-none"
+     style="max-width: 340px;">
+  <template x-for="toast in toasts" :key="toast.id">
+    <div x-show="true"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 translate-x-4"
+         x-transition:enter-end="opacity-100 translate-x-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0 translate-x-4"
+         :class="{
+           'bg-green-600': toast.type === 'success',
+           'bg-red-600': toast.type === 'error',
+           'bg-yellow-500': toast.type === 'warning',
+           'bg-blue-600': toast.type === 'info'
+         }"
+         class="pointer-events-auto flex items-center gap-2.5 px-3.5 py-2.5
+                rounded-xl shadow-lg text-white text-sm font-medium">
+      <span x-text="toast.msg" class="flex-1"></span>
+      <button @click="toasts = toasts.filter(t => t.id !== toast.id)"
+              class="opacity-60 hover:opacity-100 transition flex-shrink-0 text-xs">✕</button>
+    </div>
+  </template>
+</div>
+
+{# ── Scripts ────────────────────────────────────────────────── #}
+<script src="{% static 'js/htmx-config.js' %}" defer></script>
+<script src="{% static 'js/main.js' %}" defer></script>
+<script src="{% static 'js/upload.js' %}" defer></script>
+
+{# HTMX loading bar — atualizado via eventos HTMX #}
+<script>
+(function () {
+  const bar = document.getElementById('htmx-loading-bar');
+  if (!bar) return;
+  document.body.addEventListener('htmx:beforeRequest', () => bar.classList.add('htmx-request'));
+  document.body.addEventListener('htmx:afterRequest',  () => {
+    bar.classList.remove('htmx-request');
+    bar.classList.add('htmx-settling');
+    setTimeout(() => bar.classList.remove('htmx-settling'), 400);
+  });
+})();
+</script>
+
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>
