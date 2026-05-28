@@ -188,6 +188,11 @@
            hover:bg-green-50 dark:hover:bg-green-900/20;
   }
 
+  .nav-section {
+    @apply px-2.5 pb-1 pt-2 text-[10px] font-bold tracking-widest uppercase mt-3
+           text-gray-400 dark:text-slate-500;
+  }
+
   /* ── HTMX indicator ──────────────────────────────────────── */
   .htmx-indicator {
     @apply opacity-0 transition-opacity;
