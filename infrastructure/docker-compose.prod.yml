@@ -13,6 +13,9 @@
 # =============================================================================
 services:
   django:
+    build:
+      args:
+        APP_ENV: production
     command: gunicorn
     restart: always
     env_file: ../.env.production
@@ -27,6 +30,9 @@ services:
       - app_logs:/app/logs
 
   celery-worker:
+    build:
+      args:
+        APP_ENV: production
     restart: always
     env_file: ../.env.production
     environment:
@@ -36,6 +42,9 @@ services:
       - app_logs:/app/logs
 
   celery-beat:
+    build:
+      args:
+        APP_ENV: production
     restart: always
     env_file: ../.env.production
     environment:
