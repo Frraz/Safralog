@@ -79,9 +79,11 @@ COPY . .
 # Copia assets compilados
 COPY --from=assets $APP_HOME/static/css/dist/ $APP_HOME/static/css/dist/
 
+ARG APP_ENV=production
 ARG DJANGO_SECRET_KEY=build-time-placeholder
 ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-RUN python manage.py collectstatic --noinput
+RUN DJANGO_SETTINGS_MODULE=$([ "$APP_ENV" = "development" ] && echo "config.settings.development" || echo "config.settings.production") \
+    python manage.py collectstatic --noinput
 
 # Configura entrypoint
 COPY docker/django/entrypoint.sh /entrypoint.sh
