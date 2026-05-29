@@ -246,13 +246,11 @@ prod-check: ## Checklist de segurança Django em produção
 # Isso ocorre porque o CompressedManifestStaticFilesStorage tenta comprimir
 # todos os arquivos referenciados no manifesto, incluindo os removidos.
 # =============================================================================
-prod-deploy: ## Deploy completo: build → up → migrate → collectstatic
-	@echo "🚀 [1/4] Buildando imagens..."
+prod-deploy: ## Deploy completo: build → up → migrate
+	@echo "🚀 [1/3] Buildando imagens..."
 	$(DC_PROD) build
-	@echo "🚀 [2/4] Subindo containers..."
+	@echo "🚀 [2/3] Subindo containers..."
 	$(DC_PROD) up -d
-	@echo "🚀 [3/4] Aplicando migrations..."
+	@echo "🚀 [3/3] Aplicando migrations..."
 	$(DC_PROD) exec django python manage.py migrate --noinput
-	@echo "🚀 [4/4] Coletando estáticos..."
-	$(DC_PROD) exec django python manage.py collectstatic --noinput --clear
 	@echo "✅ Deploy concluído."

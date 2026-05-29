@@ -79,6 +79,10 @@ COPY . .
 # Copia assets compilados
 COPY --from=assets $APP_HOME/static/css/dist/ $APP_HOME/static/css/dist/
 
+ARG DJANGO_SECRET_KEY=build-time-placeholder
+ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+RUN python manage.py collectstatic --noinput
+
 # Configura entrypoint
 COPY docker/django/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
