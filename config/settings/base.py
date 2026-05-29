@@ -13,6 +13,7 @@ from pathlib import Path
 
 import environ
 from celery.schedules import crontab
+from kombu import Queue
 
 # =============================================================================
 # PATHS
@@ -158,6 +159,7 @@ DATABASES = {
     )
 }
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=60)
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 DATABASES["default"]["OPTIONS"] = {
     "connect_timeout": 10,
     "options": "-c timezone=America/Sao_Paulo",
@@ -238,7 +240,7 @@ SOCIALACCOUNT_QUERY_EMAIL = True
 LANGUAGE_CODE = "pt-br"
 TIME_ZONE = env("TIMEZONE", default="America/Sao_Paulo")
 USE_I18N = True
-USE_L10N = True
+# USE_L10N = True
 USE_TZ = True
 
 # =============================================================================
@@ -326,11 +328,11 @@ CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutos soft limit
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-CELERY_TASK_QUEUES = {
-    "default": {"exchange": "default", "binding_key": "default"},
-    "high_priority": {"exchange": "high_priority", "binding_key": "high_priority"},
-    "low_priority": {"exchange": "low_priority", "binding_key": "low_priority"},
-}
+CELERY_TASK_QUEUES = (
+    Queue("default"),
+    Queue("high_priority"),
+    Queue("low_priority"),
+)
 CELERY_TASK_DEFAULT_QUEUE = "default"
 
 CELERY_BEAT_SCHEDULE = {

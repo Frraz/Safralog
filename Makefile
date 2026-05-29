@@ -8,12 +8,14 @@
 .PHONY: shell shell-plain shell-db
 .PHONY: migrate makemigrations makemigrations-app showmigrations
 .PHONY: superuser check check-deploy
-.PHONY: css css-watch assets static
+.PHONY: css css-watch assets static static-clear
 .PHONY: celery beat flower
-.PHONY: test test-coverage test-fast test-app lint-fix
-.PHONY: lint format typecheck
+.PHONY: test test-coverage test-fast test-app
+.PHONY: lint lint-fix format typecheck
 .PHONY: backup seed reset-seed reset-db
-.PHONY: prod-build prod-up prod-down prod-deploy prod-logs
+.PHONY: prod-build prod-up prod-down prod-restart prod-deploy prod-logs
+.PHONY: prod-shell prod-shell-db prod-ps
+.PHONY: prod-migrate prod-static prod-check
 
 DC      = docker compose -f infrastructure/docker-compose.yml
 DC_DEV  = $(DC) -f infrastructure/docker-compose.dev.yml
@@ -34,7 +36,7 @@ help: ## Mostra este menu
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-26s\033[0m %s\n", $$1, $$2}'
 
 # =============================================================================
-# DOCKER
+# DOCKER — DESENVOLVIMENTO
 # =============================================================================
 build: ## Build todos os containers (sem cache)
 	$(DC_DEV) build --no-cache
@@ -110,8 +112,11 @@ css: ## Compila Tailwind CSS para produção (minificado)
 css-watch: ## Compila Tailwind CSS em modo watch (desenvolvimento)
 	npm run dev
 
-static: ## Coleta arquivos estáticos no container
+static: ## Coleta arquivos estáticos no container (desenvolvimento)
 	$(DJANGO) python manage.py collectstatic --noinput
+
+static-clear: ## Coleta arquivos estáticos limpando destino antes (desenvolvimento)
+	$(DJANGO) python manage.py collectstatic --noinput --clear
 
 assets: css static ## Compila CSS + coleta estáticos (use após adicionar assets)
 
@@ -136,9 +141,8 @@ test: ## Roda todos os testes com pytest
 	$(DJANGO) bash -c '$(TEST_SETTINGS) python -m pytest tests/ apps/ -v --tb=short'
 
 test-coverage: ## Roda testes com cobertura e gera relatório HTML
-	docker compose -f infrastructure/docker-compose.yml \
-	               -f infrastructure/docker-compose.dev.yml exec django bash -c \
-	'DJANGO_SETTINGS_MODULE=config.settings.testing python -m pytest tests/ apps/ \
+	$(DC_DEV) exec django bash -c \
+	'$(TEST_SETTINGS) python -m pytest tests/ apps/ \
 	  --cov=apps \
 	  --cov-report=term-missing \
 	  --cov-report=html:/tmp/htmlcov \
@@ -197,7 +201,7 @@ reset-db: ## ⚠️  DESTRÓI e recria o banco inteiro (apenas dev)
 	$(MAKE) seed
 
 # =============================================================================
-# PRODUÇÃO
+# PRODUÇÃO — COMANDOS INDIVIDUAIS
 # =============================================================================
 prod-build: ## Build imagens de produção
 	$(DC_PROD) build
@@ -208,11 +212,47 @@ prod-up: ## Sobe ambiente de produção
 prod-down: ## Para ambiente de produção
 	$(DC_PROD) down
 
-prod-deploy: ## Deploy completo: build → up → migrate → collectstatic
-	$(DC_PROD) build
-	$(DC_PROD) up -d
-	$(DC_PROD) exec django python manage.py migrate --noinput
-	$(DC_PROD) exec django python manage.py collectstatic --noinput
+prod-restart: ## Reinicia container Django em produção sem rebuild
+	$(DC_PROD) restart django
 
-prod-logs: ## Logs de produção em tempo real
+prod-ps: ## Lista containers de produção e status
+	$(DC_PROD) ps
+
+prod-logs: ## Logs de produção em tempo real (todos os containers)
 	$(DC_PROD) logs -f
+
+prod-shell: ## Django shell em produção (usar com cautela)
+	$(DC_PROD) exec django python manage.py shell
+
+prod-shell-db: ## psql direto no postgres de produção (usar com cautela)
+	$(DC_PROD) exec postgres psql -U $(PG_USER) -d $(PG_DB)
+
+prod-migrate: ## Aplica migrations em produção
+	$(DC_PROD) exec django python manage.py migrate --noinput
+
+prod-static: ## Coleta estáticos em produção (com --clear para evitar arquivos órfãos)
+	$(DC_PROD) exec django python manage.py collectstatic --noinput --clear
+
+prod-check: ## Checklist de segurança Django em produção
+	$(DC_PROD) exec django python manage.py check --deploy
+
+# =============================================================================
+# PRODUÇÃO — DEPLOY COMPLETO
+#
+# Ordem: build → up → migrate → collectstatic
+#
+# --clear no collectstatic é obrigatório: evita FileNotFoundError no WhiteNoise
+# quando arquivos órfãos de deploys anteriores permanecem em static_collected.
+# Isso ocorre porque o CompressedManifestStaticFilesStorage tenta comprimir
+# todos os arquivos referenciados no manifesto, incluindo os removidos.
+# =============================================================================
+prod-deploy: ## Deploy completo: build → up → migrate → collectstatic
+	@echo "🚀 [1/4] Buildando imagens..."
+	$(DC_PROD) build
+	@echo "🚀 [2/4] Subindo containers..."
+	$(DC_PROD) up -d
+	@echo "🚀 [3/4] Aplicando migrations..."
+	$(DC_PROD) exec django python manage.py migrate --noinput
+	@echo "🚀 [4/4] Coletando estáticos..."
+	$(DC_PROD) exec django python manage.py collectstatic --noinput --clear
+	@echo "✅ Deploy concluído."
